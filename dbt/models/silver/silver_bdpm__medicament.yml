@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: silver_bdpm__medicament
+    description: "Drug specialties — one row per CIS code."
+    columns:
+      - name: cis
+        description: "Code Identifiant Spécialité (primary key)"
+        data_tests:
+          - unique
+          - not_null
+      - name: denomination
+        data_tests:
+          - not_null
+      - name: etat_commercialisation
+        description: "Commercialization status (e.g. 'Commercialisée')"

@@ -1,0 +1,9 @@
+version: 2
+
+models:
+  - name: silver_bdpm__info_importante
+    description: "Important safety information and RCP/notice links."
+    columns:
+      - name: cis
+        data_tests:
+          - not_null

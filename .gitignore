@@ -82,10 +82,8 @@ target/
 profile_default/
 ipython_config.py
 
-# pyenv
-#   For a library or package, you might want to ignore these files since the code is
-#   intended to run in multiple environments; otherwise, check them in:
-# .python-version
+# pyenv / uv — version pinned in pyproject.toml (requires-python)
+.python-version
 
 # pipenv
 #   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
@@ -205,3 +203,27 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Nephila — Claude local overrides
+CLAUDE.local.md
+.claude/temp/
+.claude/progress/
+
+# Nephila — Data (raw & processed files)
+data/bronze/
+data/silver/
+data/gold/
+
+# Nephila — dbt
+dbt/target/
+dbt/logs/
+dbt/.user.yml
+
+# Nephila — Dagster
+.dagster/
+
+# Nephila — ChromaDB
+chroma/
+
+# Nephila — Custom CA bundle (built locally, not versioned)
+certs/ca-bundle.pem

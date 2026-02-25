@@ -1,0 +1,21 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: "Raw tables loaded from BDPM .txt files and ANSM Thésaurus PDF."
+    tables:
+      - name: cis_bdpm
+        description: "Drug specialties (CIS_bdpm.txt)"
+      - name: cis_cip_bdpm
+        description: "Drug presentations / CIP codes (CIS_CIP_bdpm.txt)"
+      - name: cis_compo_bdpm
+        description: "Drug compositions and active substances (CIS_COMPO_bdpm.txt)"
+      - name: cis_gener_bdpm
+        description: "Generic drug groups (CIS_GENER_bdpm.txt)"
+      - name: cis_cpd_bdpm
+        description: "Prescription and dispensing conditions (CIS_CPD_bdpm.txt)"
+      - name: cis_infoimportantes
+        description: "Important safety information and RCP links (CIS_InfoImportantes.txt)"
+      - name: ansm_interaction
+        description: "Drug interactions parsed from ANSM Thésaurus PDF"

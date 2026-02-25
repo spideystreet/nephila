@@ -1,0 +1,59 @@
+[project]
+name = "nephila"
+version = "0.1.0"
+description = "Agent LangGraph spécialisé dans les référentiels médicamenteux français"
+requires-python = ">=3.11"
+dependencies = [
+    # Agent
+    "langgraph>=0.2",
+    "langchain-openai>=0.2",
+    "langchain-community>=0.3",
+    # Data
+    "dagster>=1.8",
+    "dagster-webserver>=1.8",
+    "dagster-postgres>=0.24",
+    "dagster-dbt>=0.24",
+    "dbt-core>=1.8",
+    "dbt-postgres>=1.8",
+    "pandas>=2.2",
+    "sqlalchemy>=2.0",
+    "pdfplumber>=0.11",
+    "httpx>=0.27",
+    "psycopg2-binary>=2.9",
+    # Vector DB
+    "chromadb>=0.5",
+    "sentence-transformers>=3.0",
+    # Config & Typing
+    "pydantic>=2.8",
+    "pydantic-settings>=2.4",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nephila"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+
+[tool.dagster]
+module_name = "nephila.pipeline.definitions"

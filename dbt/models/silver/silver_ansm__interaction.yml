@@ -1,0 +1,25 @@
+version: 2
+
+models:
+  - name: silver_ansm__interaction
+    description: "Drug interactions from ANSM Thésaurus."
+    columns:
+      - name: substance_a
+        data_tests:
+          - not_null
+      - name: substance_b
+        data_tests:
+          - not_null
+      - name: niveau_contrainte
+        description: >
+          Constraint level: 'Contre-indication', 'Association déconseillée',
+          'Précaution d''emploi', 'A prendre en compte'
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - "Contre-indication"
+                - "Association déconseillée"
+                - "Précaution d'emploi"
+                - "A prendre en compte"
+                - "À prendre en compte"
