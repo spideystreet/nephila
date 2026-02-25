@@ -6,8 +6,8 @@ from pathlib import Path
 
 from dagster import AssetExecutionContext, asset
 
-from nephila.pipeline.config import PipelineSettings
-from nephila.pipeline.io.downloader import download_bdpm, download_file, find_ansm_pdf_url
+from nephila.pipeline.config_pipeline import PipelineSettings
+from nephila.pipeline.io.downloader_bdpm import download_bdpm, download_file, find_ansm_pdf_url
 
 
 @asset(group_name="bronze")
