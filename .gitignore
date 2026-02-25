@@ -205,3 +205,19 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Nephila — Data (raw & processed files)
+data/bronze/
+data/silver/
+data/gold/
+
+# Nephila — dbt
+dbt/target/
+dbt/logs/
+dbt/.user.yml
+
+# Nephila — Dagster
+.dagster/
+
+# Nephila — ChromaDB
+chroma/
