@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: silver_bdpm__presentation
+    description: "Drug presentations (boxes) — one row per CIP code."
+    columns:
+      - name: cip13
+        description: "13-digit CIP code (presentation identifier)"
+        data_tests:
+          - not_null
+      - name: cis
+        description: "FK → silver_bdpm__medicament.cis"
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_bdpm__medicament')
+              field: cis

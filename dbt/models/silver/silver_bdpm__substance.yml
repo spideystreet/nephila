@@ -1,0 +1,10 @@
+version: 2
+
+models:
+  - name: silver_bdpm__substance
+    description: "Unique active substances extracted from compositions."
+    columns:
+      - name: code_substance
+        data_tests:
+          - unique
+          - not_null

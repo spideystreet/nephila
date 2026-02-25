@@ -1,0 +1,10 @@
+version: 2
+
+models:
+  - name: silver_bdpm__groupe_generique
+    description: "Unique generic drug groups."
+    columns:
+      - name: id_groupe
+        data_tests:
+          - unique
+          - not_null

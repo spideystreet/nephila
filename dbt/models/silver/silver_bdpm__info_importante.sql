@@ -2,13 +2,8 @@
 
 SELECT
     cis::BIGINT                             AS cis,
-    TO_DATE(
-        NULLIF(TRIM(date_debut), ''), 'DD/MM/YYYY'
-    )                                       AS date_debut,
-    TO_DATE(
-        NULLIF(TRIM(date_fin), ''), 'DD/MM/YYYY'
-    )                                       AS date_fin,
-    NULLIF(TRIM(texte_info_importante), '') AS texte_info_importante
+    {{ parse_bdpm_date('date_debut') }}     AS date_debut,
+    {{ parse_bdpm_date('date_fin') }}       AS date_fin,
+    {{ clean_text('texte_info_importante') }} AS texte_info_importante
 FROM {{ source('raw', 'cis_infoimportantes') }}
-WHERE cis IS NOT NULL
-  AND cis ~ '^[0-9]+$'
+WHERE {{ is_valid_cis('cis') }}

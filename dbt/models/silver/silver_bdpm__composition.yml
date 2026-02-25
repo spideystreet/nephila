@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: silver_bdpm__composition
+    description: "Active substances and excipients per drug specialty."
+    columns:
+      - name: cis
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_bdpm__medicament')
+              field: cis
+      - name: nature_composant
+        description: "SA = active substance, FT = pharmaceutical form"
