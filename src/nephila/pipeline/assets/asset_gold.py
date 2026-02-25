@@ -4,6 +4,7 @@ Index naming: idx_<source>_<content>_<model_version>
 Metadata filtering by CIS (drug specialty) and CIP13 (presentation/box).
 """
 import chromadb
+from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 from dagster import AssetExecutionContext, asset
 from sqlalchemy import create_engine
 
@@ -12,7 +13,7 @@ from nephila.pipeline.io.builder_documents import (
     build_interaction_documents,
     build_medicament_documents,
 )
-from nephila.pipeline.io.embedder_openrouter import OpenRouterEmbeddingFunction
+from nephila.pipeline.io.embedder_local import get_embedding_function
 
 BATCH_SIZE = 100
 
@@ -26,11 +27,7 @@ def gold_embeddings(context: AssetExecutionContext) -> None:
     settings = PipelineSettings()
     engine = create_engine(settings.postgres_dsn)
 
-    ef = OpenRouterEmbeddingFunction(
-        api_key=settings.openrouter_api_key,
-        base_url=settings.openrouter_base_url,
-        model=settings.openrouter_embedding_model,
-    )
+    ef = get_embedding_function(settings.embedding_model)
 
     client = chromadb.HttpClient(host=settings.chroma_host, port=settings.chroma_port)
 
@@ -60,7 +57,7 @@ def gold_embeddings(context: AssetExecutionContext) -> None:
 
 def _upsert_collection(
     client: chromadb.HttpClient,
-    ef: OpenRouterEmbeddingFunction,
+    ef: SentenceTransformerEmbeddingFunction,
     name: str,
     builder: object,
     context: AssetExecutionContext,

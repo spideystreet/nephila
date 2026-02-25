@@ -22,6 +22,7 @@ dependencies = [
     "psycopg2-binary>=2.9",
     # Vector DB
     "chromadb>=0.5",
+    "sentence-transformers>=3.0",
     # Config & Typing
     "pydantic>=2.8",
     "pydantic-settings>=2.4",
