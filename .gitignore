@@ -204,6 +204,11 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+# Nephila — Claude local overrides
+CLAUDE.local.md
+.claude/temp/
+.claude/progress/
+
 # Nephila — Data (raw & processed files)
 data/bronze/
 data/silver/
