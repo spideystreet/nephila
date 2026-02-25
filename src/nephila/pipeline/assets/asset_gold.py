@@ -1,11 +1,82 @@
 """
 Gold layer — Vector embeddings stored in ChromaDB.
-Metadata filtering by CIS code (drug) and CIP13 code (presentation/box).
+Index naming: idx_<source>_<content>_<model_version>
+Metadata filtering by CIS (drug specialty) and CIP13 (presentation/box).
 """
-from dagster import asset
+import chromadb
+from dagster import AssetExecutionContext, asset
+from sqlalchemy import create_engine
+
+from nephila.pipeline.config_pipeline import PipelineSettings
+from nephila.pipeline.io.builder_documents import (
+    build_interaction_documents,
+    build_medicament_documents,
+)
+from nephila.pipeline.io.embedder_openrouter import OpenRouterEmbeddingFunction
+
+BATCH_SIZE = 100
 
 
-@asset(group_name="gold", deps=["silver_bdpm"])
-def gold_embeddings() -> None:
-    """Generate and index embeddings into ChromaDB."""
-    ...
+@asset(group_name="gold", deps=["silver_dbt"])
+def gold_embeddings(context: AssetExecutionContext) -> None:
+    """
+    Build and upsert ChromaDB collections from Silver tables.
+    Collections: idx_bdpm_medicament_v1, idx_ansm_interaction_v1
+    """
+    settings = PipelineSettings()
+    engine = create_engine(settings.postgres_dsn)
+
+    ef = OpenRouterEmbeddingFunction(
+        api_key=settings.openrouter_api_key,
+        base_url=settings.openrouter_base_url,
+        model=settings.openrouter_embedding_model,
+    )
+
+    client = chromadb.HttpClient(host=settings.chroma_host, port=settings.chroma_port)
+
+    med_count = _upsert_collection(
+        client=client,
+        ef=ef,
+        name="idx_bdpm_medicament_v1",
+        builder=lambda: build_medicament_documents(engine),
+        context=context,
+    )
+
+    int_count = _upsert_collection(
+        client=client,
+        ef=ef,
+        name="idx_ansm_interaction_v1",
+        builder=lambda: build_interaction_documents(engine),
+        context=context,
+    )
+
+    context.add_output_metadata(
+        {
+            "idx_bdpm_medicament_v1": med_count,
+            "idx_ansm_interaction_v1": int_count,
+        }
+    )
+
+
+def _upsert_collection(
+    client: chromadb.HttpClient,
+    ef: OpenRouterEmbeddingFunction,
+    name: str,
+    builder: object,
+    context: AssetExecutionContext,
+) -> int:
+    """Build documents and upsert them into a ChromaDB collection in batches."""
+    collection = client.get_or_create_collection(name=name, embedding_function=ef)
+
+    ids, documents, metadatas = builder()  # type: ignore[operator]
+    total = len(ids)
+
+    for i in range(0, total, BATCH_SIZE):
+        collection.upsert(
+            ids=ids[i : i + BATCH_SIZE],
+            documents=documents[i : i + BATCH_SIZE],
+            metadatas=metadatas[i : i + BATCH_SIZE],
+        )
+        context.log.info(f"[gold] {name} — upserted {min(i + BATCH_SIZE, total)}/{total}")
+
+    return total
