@@ -31,9 +31,9 @@ class PipelineSettings(BaseSettings):
     bronze_dir: Path = Path("data/bronze")
 
     # Official data source URLs
-    bdpm_base_url: str = "https://base-donnees-publique.medicaments.gouv.fr/telechargement.php"
+    bdpm_base_url: str = "https://base-donnees-publique.medicaments.gouv.fr"
     ansm_thesaurus_page_url: str = (
-        "https://ansm.sante.fr/documents/consultation/thesaurus-des-interactions-medicamenteuses"
+        "https://ansm.sante.fr/documents/reference/thesaurus-des-interactions-medicamenteuses-1"
     )
 
     @property

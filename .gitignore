@@ -224,3 +224,6 @@ dbt/.user.yml
 
 # Nephila — ChromaDB
 chroma/
+
+# Nephila — Custom CA bundle (built locally, not versioned)
+certs/ca-bundle.pem

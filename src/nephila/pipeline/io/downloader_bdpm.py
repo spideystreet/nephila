@@ -8,12 +8,17 @@ from pathlib import Path
 import httpx
 from dagster import get_dagster_logger
 
+# Files served at /download/file/{filename}
 BDPM_FILES = [
     "CIS_bdpm.txt",
     "CIS_CIP_bdpm.txt",
     "CIS_COMPO_bdpm.txt",
     "CIS_GENER_bdpm.txt",
     "CIS_CPD_bdpm.txt",
+]
+
+# Files served at a different path (direct /download/{filename})
+BDPM_FILES_DIRECT = [
     "CIS_InfoImportantes.txt",
 ]
 
@@ -38,10 +43,16 @@ def download_file(url: str, dest: Path, timeout: int = 120) -> Path:
 
 
 def download_bdpm(base_url: str, dest_dir: Path) -> list[Path]:
-    """Download all BDPM files into dest_dir/bdpm/."""
+    """Download all BDPM files into dest_dir/bdpm/.
+
+    base_url should be the site root, e.g. https://base-donnees-publique.medicaments.gouv.fr
+    """
     paths: list[Path] = []
     for filename in BDPM_FILES:
-        url = f"{base_url}?fichier={filename}"
+        url = f"{base_url}/download/file/{filename}"
+        paths.append(download_file(url, dest_dir / "bdpm" / filename))
+    for filename in BDPM_FILES_DIRECT:
+        url = f"{base_url}/download/{filename}"
         paths.append(download_file(url, dest_dir / "bdpm" / filename))
     return paths
 

@@ -1,119 +1,110 @@
 """
 ANSM Thésaurus PDF parser.
 Extracts drug interaction records from the official ANSM PDF publication.
-The PDF structure varies across releases; this parser uses heuristics on table headers.
+The PDF uses a text-column layout (not structured tables): interactions are
+parsed from raw page text using line-by-line heuristics.
 """
+import re
 from pathlib import Path
 
 import pdfplumber
 from dagster import get_dagster_logger
 
-# Known column header keywords for each field
-_SUBSTANCE_B_KEYWORDS = ("substances", "médicaments", "medicaments", "classes")
-_CONSTRAINT_KEYWORDS = ("niveau", "contrainte")
-_RISK_KEYWORDS = ("risque", "nature", "mécanisme", "mecanisme")
-_CONDUCT_KEYWORDS = ("conduite", "tenir")
+# Constraint level aliases — map normalized forms to canonical labels
+_CONSTRAINT_PATTERNS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"\bcontre[-\s]indication\b", re.IGNORECASE), "Contre-indication"),
+    (re.compile(r"\bCI\b"), "Contre-indication"),
+    (re.compile(r"\bassociation\s+d[ée]conseill[ée]e\b", re.IGNORECASE), "Association déconseillée"),
+    (re.compile(r"\bASDEC\b"), "Association déconseillée"),
+    (re.compile(r"\bpr[ée]caution\s+d.emploi\b", re.IGNORECASE), "Précaution d'emploi"),
+    (re.compile(r"\bPE\b"), "Précaution d'emploi"),
+    (re.compile(r"\b[àa]\s+prendre\s+en\s+compte\b", re.IGNORECASE), "A prendre en compte"),
+    (re.compile(r"\bAPEC\b"), "A prendre en compte"),
+]
 
-# Recognized constraint level prefixes (for row-level filtering)
-VALID_CONSTRAINT_LEVELS = (
-    "contre-indication",
-    "association déconseillée",
-    "précaution d'emploi",
-    "à prendre en compte",
-    "a prendre en compte",
-)
-
-
-def _map_columns(header: list[str]) -> dict[str, int] | None:
-    """Map column header cells to field names. Returns None if table is not an interaction table."""
-    col_map: dict[str, int] = {}
-    for i, cell in enumerate(header):
-        cell_lower = cell.lower().strip()
-        if any(kw in cell_lower for kw in _SUBSTANCE_B_KEYWORDS):
-            col_map["substance_b"] = i
-        elif any(kw in cell_lower for kw in _CONSTRAINT_KEYWORDS):
-            col_map["niveau_contrainte"] = i
-        elif any(kw in cell_lower for kw in _RISK_KEYWORDS):
-            col_map["nature_risque"] = i
-        elif any(kw in cell_lower for kw in _CONDUCT_KEYWORDS):
-            col_map["conduite_a_tenir"] = i
-
-    # An interaction table must have at least these two columns
-    if "substance_b" not in col_map or "niveau_contrainte" not in col_map:
-        return None
-    return col_map
+_SUBSTANCE_A_RE = re.compile(r"^[A-ZÀÁÂÄÇÉÈÊËÎÏÔÙÛÜ\s,\'\-/\(\)\.0-9]{3,80}$")
 
 
-def _extract_row(row: list, col_map: dict[str, int], substance_a: str) -> dict | None:
-    """Extract a single interaction record from a table row."""
+def _detect_constraint(text: str) -> str | None:
+    """Return the highest-priority constraint level found in text, or None."""
+    # Priority order: CI > ASDEC > PE > APEC
+    for pattern, label in _CONSTRAINT_PATTERNS:
+        if pattern.search(text):
+            return label
+    return None
 
-    def cell(key: str) -> str | None:
-        idx = col_map.get(key)
-        if idx is None or idx >= len(row):
-            return None
-        val = row[idx]
-        return str(val).strip() if val else None
 
-    substance_b = cell("substance_b")
-    niveau = cell("niveau_contrainte")
-
-    if not substance_b or not niveau:
-        return None
-
-    # Filter rows that don't look like real interaction entries
-    niveau_lower = niveau.lower()
-    if not any(niveau_lower.startswith(lvl) for lvl in VALID_CONSTRAINT_LEVELS):
-        return None
-
-    return {
-        "substance_a": substance_a,
-        "substance_b": substance_b,
-        "niveau_contrainte": niveau,
-        "nature_risque": cell("nature_risque"),
-        "conduite_a_tenir": cell("conduite_a_tenir"),
-    }
+def _is_substance_a(line: str) -> bool:
+    """True if the line looks like a substance A header (all-caps, not starting with +)."""
+    if line.startswith("+") or line.startswith("Voir") or line.startswith("voir"):
+        return False
+    return bool(_SUBSTANCE_A_RE.match(line))
 
 
 def parse_thesaurus_pdf(pdf_path: Path) -> list[dict]:
     """
     Parse the ANSM Thésaurus PDF and return a list of interaction records.
     Each record contains: substance_a, substance_b, niveau_contrainte,
-    nature_risque, conduite_a_tenir.
+    nature_risque, conduite_a_tenir (always None — not extractable from this layout).
     """
     log = get_dagster_logger()
     records: list[dict] = []
-    current_substance: str = "UNKNOWN"
+    current_substance_a: str = "UNKNOWN"
+    current_substance_b: str | None = None
+    description_lines: list[str] = []
     pages_processed = 0
+
+    def flush_interaction() -> None:
+        """Emit current substance_b + accumulated description as a record."""
+        if not current_substance_b:
+            return
+        description = " ".join(description_lines)
+        niveau = _detect_constraint(description)
+        if niveau:
+            # Strip the constraint level tokens from the nature_risque text
+            nature = description
+            for pattern, _ in _CONSTRAINT_PATTERNS:
+                nature = pattern.sub("", nature).strip(" -–•")
+            records.append(
+                {
+                    "substance_a": current_substance_a,
+                    "substance_b": current_substance_b,
+                    "niveau_contrainte": niveau,
+                    "nature_risque": nature or None,
+                    "conduite_a_tenir": None,
+                }
+            )
 
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
-            # Attempt to extract the substance name from page text (appears as section header)
             text = page.extract_text() or ""
-            for line in text.splitlines():
-                line = line.strip()
-                # Substance headers are typically short uppercase lines
-                if line.isupper() and 3 < len(line) < 80:
-                    current_substance = line
-                    break
-
-            tables = page.extract_tables(
-                {"vertical_strategy": "lines", "horizontal_strategy": "lines"}
-            )
-            for table in tables:
-                if not table or len(table) < 2:
+            for raw_line in text.splitlines():
+                line = raw_line.strip()
+                if not line:
                     continue
 
-                header = [str(c).strip() if c else "" for c in table[0]]
-                col_map = _map_columns(header)
-                if col_map is None:
-                    continue
+                if line.startswith("+"):
+                    # New substance B → flush previous interaction first
+                    flush_interaction()
+                    current_substance_b = line.lstrip("+").strip()
+                    description_lines = []
 
-                for row in table[1:]:
-                    record = _extract_row(row, col_map, current_substance)
-                    if record:
-                        records.append(record)
+                elif _is_substance_a(line):
+                    # New substance A section → flush previous interaction
+                    flush_interaction()
+                    current_substance_b = None
+                    description_lines = []
+                    current_substance_a = line
 
+                elif current_substance_b is not None:
+                    # Accumulate description / risk / constraint text
+                    description_lines.append(line)
+
+            # Flush at end of page (interaction may span pages — keep state)
             pages_processed += 1
+
+    # Final flush
+    flush_interaction()
 
     log.info(
         f"[bronze] ANSM parser — {pages_processed} pages, {len(records)} interactions extracted"
