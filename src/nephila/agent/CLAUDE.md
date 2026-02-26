@@ -2,7 +2,7 @@
 
 ## LangGraph ReAct State Machine
 
-State defined in `model_state.py` (`AgentState` — Pydantic + `add_messages`).
+State defined in `model_state.py` (`AgentState` — TypedDict + `add_messages`).
 
 ```
 START → [agent] ──► tool_calls? ──► [tools] ──► [agent] (loop)
