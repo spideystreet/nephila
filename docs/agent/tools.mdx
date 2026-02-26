@@ -40,12 +40,28 @@ SQL lookup against the Silver `silver_bdpm__generique` table.
 
 ## `check_interactions`
 
-Semantic search against the ANSM interaction index in ChromaDB.
+Dual-strategy lookup against the ANSM interaction data.
 
-- Input: substance name or pair of substances
+- Input: **ANSM pharmacological class name** (preferred) or individual substance name as fallback
 - Output: list of interactions with constraint level and risk description
-- Index: `idx_ansm_interaction_v1` — embeddings formatted as `[LEVEL] SubstanceA + SubstanceB: risk`
 - Result format: `[Contre-indication] SUBSTANCE_A + SUBSTANCE_B: risk detail`
+
+**Strategy 1 — SQL ILIKE (primary)**: exact/partial match against `silver.silver_ansm__interaction`, sorted by constraint level severity. Returns up to 20 results.
+
+**Strategy 2 — ChromaDB vector search (fallback)**: semantic search against `idx_ansm_interaction_v1` for class names the LLM could not resolve. Results are deduplicated across both strategies.
+
+<Note>
+The ANSM Thésaurus indexes interactions by **drug class names**, not individual substance names. The LLM must resolve substance → class before calling this tool.
+
+| Substance | ANSM class to use |
+|-----------|------------------|
+| warfarine, acenocoumarol, fluindione | `ANTIVITAMINES K` |
+| aspirine (antiagrégant) | `ANTIAGREGANTS PLAQUETTAIRES` |
+| ciprofloxacine, lévofloxacine | `FLUOROQUINOLONES` |
+| MAOIs | `INHIBITEURS DE LA MAO` |
+| SSRIs | `INHIBITEURS DE RECAPTURE DE LA SEROTONINE` |
+| statines | `STATINES` |
+</Note>
 
 <Warning>
 This tool **must** be called before any drug recommendation. The guardrail node enforces this by checking `interactions_checked` in the agent state.
