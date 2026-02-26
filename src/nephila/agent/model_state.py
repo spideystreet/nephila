@@ -1,11 +1,13 @@
-from typing import Annotated, TypedDict
+from typing import Annotated, NotRequired, TypedDict
 
 from langgraph.graph.message import add_messages
 
 
 class AgentState(TypedDict):
+    # Required — Studio uses this as the chat input
     messages: Annotated[list, add_messages]
-    cis_codes: list[str]
-    interactions_found: list[dict]
-    interactions_checked: bool
-    source_cis: str | None
+    # Optional — populated during graph execution
+    cis_codes: NotRequired[list[str]]
+    interactions_found: NotRequired[list[dict]]
+    interactions_checked: NotRequired[bool]
+    source_cis: NotRequired[str | None]

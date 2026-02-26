@@ -28,7 +28,7 @@ def guardrail_node(state: AgentState) -> dict:
 
 def should_warn(state: AgentState) -> str:
     """Conditional edge: route to 'warn' if a critical interaction is found, else 'response'."""
-    for interaction in state.interactions_found:
+    for interaction in state.get("interactions_found", []):
         if interaction.get("niveau_contrainte", "").lower() in CRITICAL_LEVELS:
             return "warn"
     return "response"

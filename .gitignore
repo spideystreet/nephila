@@ -204,6 +204,9 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+# Nephila — LangGraph Studio
+.langgraph_api/
+
 # Nephila — Claude local overrides
 CLAUDE.local.md
 .claude/temp/
