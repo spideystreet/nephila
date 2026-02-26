@@ -1,4 +1,5 @@
-from typing import Annotated, NotRequired, TypedDict
+from typing import Annotated
+from typing_extensions import NotRequired, TypedDict
 
 from langgraph.graph.message import add_messages
 
