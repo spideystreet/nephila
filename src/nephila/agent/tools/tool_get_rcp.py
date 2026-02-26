@@ -1,4 +1,5 @@
 """Fetch RCP (Résumé des Caractéristiques du Produit) links from Silver layer."""
+
 from langchain_core.tools import tool
 from sqlalchemy import create_engine, text
 
@@ -26,7 +27,7 @@ def get_rcp(cis: str) -> str:
         ).fetchall()
 
     if not rows:
-        return f"No RCP information found for CIS {cis}. Refer to base-donnees-publique.medicaments.gouv.fr"
+        return f"No RCP information found for CIS {cis}. Refer to base-donnees-publique.medicaments.gouv.fr"  # noqa: E501
 
     lines = [f"RCP / Important information for CIS {cis}:"]
     for row in rows:

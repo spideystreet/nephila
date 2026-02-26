@@ -9,3 +9,7 @@ models:
           - not_null
       - name: type_generique
         description: "0=princeps, 1=générique, 2=générique par assimilation, 4=CPP"
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1, 2, 4]

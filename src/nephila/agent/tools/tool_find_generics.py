@@ -1,4 +1,5 @@
 """Find generic equivalents for a drug by CIS code (SQL — Silver layer)."""
+
 from langchain_core.tools import tool
 from sqlalchemy import create_engine, text
 

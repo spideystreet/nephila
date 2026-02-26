@@ -1,0 +1,38 @@
+[sqlfluff]
+templater = jinja
+dialect = postgres
+sql_file_exts = .sql
+# Ignore templating errors from unresolvable dbt macros (no DB needed in CI)
+ignore = templating
+max_line_length = 120
+# LT01: models use aligned spacing before AS (intentional style)
+# LT02: WHERE/AND indentation conflicts with macro expansion rendering
+exclude_rules = LT01,LT02
+
+[sqlfluff:templater:jinja]
+# Stub out dbt built-ins so Jinja doesn't raise NameError
+[sqlfluff:templater:jinja:macros]
+source = "{% macro source(schema, table) %}{{ schema }}.{{ table }}{% endmacro %}"
+ref = "{% macro ref(model) %}{{ model }}{% endmacro %}"
+clean_text = "{% macro clean_text(col) %}NULLIF(TRIM({{ col }}), ''){% endmacro %}"
+parse_bdpm_date = "{% macro parse_bdpm_date(col) %}TO_DATE(NULLIF(TRIM({{ col }}), ''), 'DD/MM/YYYY'){% endmacro %}"
+is_valid_cis = "{% macro is_valid_cis(col) %}{{ col }} IS NOT NULL AND {{ col }} ~ '^[0-9]+$'{% endmacro %}"
+
+[sqlfluff:layout:type:comma]
+line_position = trailing
+
+[sqlfluff:indentation]
+indent_unit = space
+tab_space_size = 4
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.identifiers]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = upper

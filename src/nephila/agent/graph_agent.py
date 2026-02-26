@@ -2,10 +2,15 @@
 Nephila ReAct agent — LangGraph graph definition.
 Architecture: agent (LLM + tools) → guardrail → response|warn
 """
+
+from typing import Any
+
 from langchain_core.messages import SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
+from pydantic import SecretStr
 
 from nephila.agent.model_state import AgentState
 from nephila.agent.nodes.node_guardrail import guardrail_node, should_warn
@@ -34,7 +39,8 @@ MANDATORY RULES:
 3. Always include the CIS code when referring to a specific drug.
 4. Report every interaction found with its ANSM constraint level.
 
-CRITICAL — check_interactions takes TWO substances/classes and returns only their direct interaction.
+CRITICAL — check_interactions takes TWO substances/classes and returns only their direct
+interaction.
 Always pass both drugs as separate arguments. Use ANSM pharmacological class names when known:
 - warfarine, acenocoumarol, fluindione → 'ANTIVITAMINES K'
 - aspirin (antiagrégant dose) → 'ANTIAGREGANTS PLAQUETTAIRES'
@@ -47,18 +53,18 @@ Always pass both drugs as separate arguments. Use ANSM pharmacological class nam
 When the class is unknown, pass the individual substance name as fallback."""
 
 
-def build_agent() -> StateGraph:
+def build_agent() -> CompiledStateGraph:  # type: ignore[type-arg]
     settings = PipelineSettings()
 
     llm = ChatOpenAI(
         base_url=settings.openrouter_base_url,
-        api_key=settings.openrouter_api_key,
+        api_key=SecretStr(settings.openrouter_api_key),
         model=settings.openrouter_model,
         default_headers={"X-Title": "Nephila"},
     )
     llm_with_tools = llm.bind_tools(TOOLS)
 
-    def agent_node(state: AgentState) -> dict:
+    def agent_node(state: AgentState) -> dict[str, Any]:
         messages = list(state["messages"])
         if not messages or not isinstance(messages[0], SystemMessage):
             messages = [SystemMessage(content=SYSTEM_PROMPT)] + messages
@@ -70,7 +76,7 @@ def build_agent() -> StateGraph:
             return "tools"
         return "guardrail"
 
-    builder: StateGraph = StateGraph(AgentState)
+    builder = StateGraph(AgentState)
     builder.add_node("agent", agent_node)
     builder.add_node("tools", ToolNode(TOOLS))
     builder.add_node("guardrail", guardrail_node)

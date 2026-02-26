@@ -3,7 +3,9 @@ Gold layer — Vector embeddings stored in ChromaDB.
 Index naming: idx_<source>_<content>_<model_version>
 Metadata filtering by CIS (drug specialty) and CIP13 (presentation/box).
 """
+
 import chromadb
+from chromadb.api import ClientAPI
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 from dagster import AssetExecutionContext, AssetKey, asset
 from sqlalchemy import create_engine
@@ -63,14 +65,14 @@ def gold_embeddings(context: AssetExecutionContext) -> None:
 
 
 def _upsert_collection(
-    client: chromadb.HttpClient,
+    client: ClientAPI,
     ef: SentenceTransformerEmbeddingFunction,
     name: str,
     builder: object,
     context: AssetExecutionContext,
 ) -> int:
     """Build documents and upsert them into a ChromaDB collection in batches."""
-    collection = client.get_or_create_collection(name=name, embedding_function=ef)
+    collection = client.get_or_create_collection(name=name, embedding_function=ef)  # type: ignore[arg-type]
 
     ids, documents, metadatas = builder()  # type: ignore[operator]
     total = len(ids)

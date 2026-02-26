@@ -2,16 +2,18 @@
 Mandatory guardrail node — runs before every final response.
 Parses interaction tool results and flags critical constraint levels.
 """
+
 import re
+from typing import Any
 
 from langchain_core.messages import ToolMessage
 
 from nephila.agent.model_state import AgentState
 
-CRITICAL_LEVELS = frozenset({"contre-indication", "association déconseillée"})
+CRITICAL_LEVELS: frozenset[str] = frozenset({"contre-indication", "association déconseillée"})
 
 
-def guardrail_node(state: AgentState) -> dict:
+def guardrail_node(state: AgentState) -> dict[str, Any]:
     """Extract interaction records from tool messages and flag critical ones."""
     messages = state["messages"]
 
@@ -22,13 +24,14 @@ def guardrail_node(state: AgentState) -> dict:
             last_human_idx = i
             break
 
-    seen_pairs: set[frozenset] = set()
-    interactions: list[dict] = []
+    seen_pairs: set[frozenset[str]] = set()
+    interactions: list[dict[str, Any]] = []
     for msg in messages[last_human_idx:]:
         if not isinstance(msg, ToolMessage):
             continue
+        content = str(msg.content)
         # Match lines like "[Contre-indication] SUBSTANCE_A + SUBSTANCE_B"
-        for match in re.finditer(r"\[([^\]]+)\]\s+(.+?)(?:\n|$)", msg.content):
+        for match in re.finditer(r"\[([^\]]+)\]\s+(.+?)(?:\n|$)", content):
             level, detail = match.group(1), match.group(2)
             # Deduplicate mirror entries (A+B == B+A)
             pair = frozenset(p.strip() for p in detail.split("+", 1))

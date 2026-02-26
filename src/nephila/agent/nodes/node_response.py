@@ -1,18 +1,21 @@
 """Response node — extracts CIS traceability metadata from the conversation."""
+
 import re
+from typing import Any
 
 from langchain_core.messages import ToolMessage
 
 from nephila.agent.model_state import AgentState
 
 
-def response_node(state: AgentState) -> dict:
+def response_node(state: AgentState) -> dict[str, Any]:
     """Extract the primary source_cis from tool results for traceability."""
     source_cis: str | None = None
 
     for msg in state["messages"]:
-        if isinstance(msg, ToolMessage) and "CIS " in msg.content:
-            match = re.search(r"CIS (\d+)", msg.content)
+        content = str(msg.content)
+        if isinstance(msg, ToolMessage) and "CIS " in content:
+            match = re.search(r"CIS (\d+)", content)
             if match:
                 source_cis = match.group(1)
                 break

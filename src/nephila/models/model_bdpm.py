@@ -1,4 +1,5 @@
 """Pydantic models for BDPM source files — used for sample validation before raw loading."""
+
 from pydantic import BaseModel, ConfigDict, field_validator
 
 
