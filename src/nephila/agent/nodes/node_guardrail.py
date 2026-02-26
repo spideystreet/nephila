@@ -17,9 +17,10 @@ def guardrail_node(state: AgentState) -> dict:
 
     # Only inspect tool messages from the current turn (after the last HumanMessage)
     last_human_idx = 0
-    for i, msg in enumerate(messages):
+    for i, msg in reversed(list(enumerate(messages))):
         if getattr(msg, "type", None) == "human":
             last_human_idx = i
+            break
 
     seen_pairs: set[frozenset] = set()
     interactions: list[dict] = []
