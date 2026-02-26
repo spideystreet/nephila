@@ -1,0 +1,98 @@
+---
+title: "dbt Overview"
+description: "Conventions, macros, and Silver model catalog"
+---
+
+## Project Configuration
+
+dbt project `nephila` (`dbt/dbt_project.yml`):
+
+- **Profile**: `nephila` (PostgreSQL)
+- **Silver models**: schema `silver`, materialized `table`
+- **Model paths**: `dbt/models/`
+- **Macro paths**: `dbt/macros/`
+
+## Model Naming Convention
+
+```
+<layer>_<source>__<entity>.sql
+```
+
+Examples: `silver_bdpm__medicament.sql`, `silver_ansm__interaction.sql`
+
+## Contract = One Model = One `.yml`
+
+Each `.sql` model has a **matching `.yml` contract** with the same name:
+
+```
+silver_bdpm__medicament.sql   ←→   silver_bdpm__medicament.yml
+silver_ansm__interaction.sql  ←→   silver_ansm__interaction.yml
+```
+
+No shared `schema.yml`. The `.yml` defines columns, descriptions, and data tests.
+
+## Macros
+
+| Macro | SQL expansion | Usage |
+|-------|--------------|-------|
+| `clean_text(col)` | `NULLIF(TRIM(col), '')` | Remove whitespace and empty strings |
+| `parse_bdpm_date(col)` | `TO_DATE(NULLIF(TRIM(col), ''), 'DD/MM/YYYY')` | Parse BDPM date strings |
+| `is_valid_cis(col)` | `col IS NOT NULL AND col ~ '^[0-9]+$'` | Validate CIS codes (numeric) |
+
+Use macros for any transformation used more than once across models.
+
+## Sources
+
+All raw tables are declared in `dbt/models/sources.yml` under source `raw`:
+
+```yaml
+sources:
+  - name: raw
+    tables:
+      - name: cis_bdpm
+      - name: cis_cip_bdpm
+      - name: cis_compo_bdpm
+      - name: cis_gener_bdpm
+      - name: cis_cpd_bdpm
+      - name: cis_infoimportantes
+      - name: ansm_thesaurus
+```
+
+Reference in models with `{{ source('raw', 'table_name') }}`.
+
+## Silver Model Catalog
+
+### BDPM models (`silver_bdpm__*`)
+
+| Model | Raw source | Description |
+|-------|-----------|-------------|
+| `silver_bdpm__medicament` | `raw.cis_bdpm` | Drug specialties |
+| `silver_bdpm__presentation` | `raw.cis_cip_bdpm` | Presentations / boxes (CIP13) |
+| `silver_bdpm__composition` | `raw.cis_compo_bdpm` | Substance composition |
+| `silver_bdpm__substance` | `raw.cis_compo_bdpm` | Unique substances reference |
+| `silver_bdpm__groupe_generique` | `raw.cis_gener_bdpm` | Generic groups |
+| `silver_bdpm__generique` | `raw.cis_gener_bdpm` | Generic ↔ originator linkage |
+| `silver_bdpm__condition_delivrance` | `raw.cis_cpd_bdpm` | Prescription/dispensing conditions |
+| `silver_bdpm__info_importante` | `raw.cis_infoimportantes` | RCP links |
+
+### ANSM models (`silver_ansm__*`)
+
+| Model | Raw source | Description |
+|-------|-----------|-------------|
+| `silver_ansm__interaction` | `raw.ansm_thesaurus` | Drug interactions with constraint levels |
+
+## Running dbt
+
+```bash
+# All silver models
+uv run dbt run --project-dir dbt --profiles-dir dbt
+
+# Tests (contracts)
+uv run dbt test --project-dir dbt --profiles-dir dbt
+
+# Single model
+uv run dbt run --project-dir dbt --profiles-dir dbt --select silver_ansm__interaction
+
+# Compile only (check SQL without running)
+uv run dbt compile --project-dir dbt --profiles-dir dbt
+```

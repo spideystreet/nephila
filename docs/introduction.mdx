@@ -1,0 +1,56 @@
+---
+title: "Introduction"
+description: "Nephila — agent IA spécialisé dans les référentiels pharmaceutiques français"
+---
+
+## Qu'est-ce que Nephila ?
+
+**Nephila** est un agent IA ReAct conçu pour interroger les référentiels pharmaceutiques officiels français. Il permet de rechercher des médicaments, vérifier des interactions médicamenteuses, et consulter les fiches RCP — le tout en s'appuyant sur des données officielles, traitées localement.
+
+## Sources de données
+
+<CardGroup cols={2}>
+  <Card title="BDPM" icon="pills">
+    **Base de Données Publique des Médicaments** — référentiel national des médicaments autorisés en France. Données publiques mises à disposition par l'ANSM.
+
+    Contenu : spécialités, présentations (CIP13), compositions, groupes génériques, conditions de délivrance, RCP.
+  </Card>
+  <Card title="ANSM Thésaurus" icon="triangle-exclamation">
+    **Thésaurus des interactions médicamenteuses** — publication officielle de l'ANSM listant toutes les interactions connues entre substances actives, classées par niveau de contrainte.
+
+    Contenu : substance A × substance B, niveau de contrainte, nature du risque.
+  </Card>
+</CardGroup>
+
+## Architecture en médaillon
+
+```
+Bronze  →  Fichiers bruts sur disque     data/bronze/{bdpm/, ansm/}
+Silver  →  SQL normalisé                 PostgreSQL schemas: raw → silver (via dbt)
+Gold    →  Embeddings vectoriels         ChromaDB (self-hosted)
+```
+
+Les données brutes sont téléchargées depuis les sources officielles, parsées, transformées par dbt, puis indexées dans ChromaDB pour la recherche sémantique.
+
+## Cas d'usage
+
+- Rechercher un médicament par dénomination commune ou nom de marque
+- Identifier les génériques d'une spécialité donnée
+- Vérifier les interactions entre deux substances actives
+- Consulter le RCP officiel d'un médicament
+
+<Warning>
+Nephila est un outil d'information. Il ne remplace pas l'avis d'un professionnel de santé. Toute réponse s'appuie sur les données officielles et renvoie systématiquement au RCP.
+</Warning>
+
+## Stack technique
+
+| Composant | Technologie |
+|-----------|-------------|
+| Orchestration | Dagster |
+| Transformations SQL | dbt (PostgreSQL) |
+| Embeddings | `intfloat/multilingual-e5-base` (local) |
+| Vector store | ChromaDB (self-hosted) |
+| Agent framework | LangGraph (ReAct) |
+| LLM | OpenRouter (configurable) |
+| Observabilité | LangSmith (optionnel) |

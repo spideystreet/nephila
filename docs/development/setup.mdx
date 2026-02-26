@@ -1,0 +1,137 @@
+---
+title: "Configuration locale"
+description: "Setup complet — uv, Docker, variables d'environnement, certificats SSL"
+---
+
+## Prérequis système
+
+- Python 3.11+
+- [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+- Docker Engine + Docker Compose v2
+- Git
+
+## Installation
+
+```bash
+# Cloner le dépôt
+git clone https://github.com/spideystreet/nephila.git
+cd nephila
+
+# Installer toutes les dépendances (prod + dev)
+uv sync && uv sync --extra dev
+```
+
+## Variables d'environnement
+
+```bash
+cp .env.example .env
+```
+
+### Référence complète des variables
+
+#### LLM (OpenRouter)
+
+| Variable | Obligatoire | Description |
+|----------|------------|-------------|
+| `OPENROUTER_API_KEY` | Oui | Clé API OpenRouter |
+| `OPENROUTER_BASE_URL` | Non | Base URL (défaut: `https://openrouter.ai/api/v1`) |
+| `OPENROUTER_MODEL` | Oui | Identifiant du modèle (ex: `anthropic/claude-3-5-sonnet`) |
+
+#### Embeddings
+
+| Variable | Obligatoire | Description |
+|----------|------------|-------------|
+| `EMBEDDING_MODEL` | Non | Modèle HuggingFace (défaut: `intfloat/multilingual-e5-base`) |
+
+#### PostgreSQL
+
+| Variable | Obligatoire | Description |
+|----------|------------|-------------|
+| `POSTGRES_USER` | Oui | Nom d'utilisateur PostgreSQL |
+| `POSTGRES_PASSWORD` | Oui | Mot de passe PostgreSQL |
+| `POSTGRES_DB` | Oui | Nom de la base de données |
+| `POSTGRES_HOST` | Non | Hôte (défaut: `localhost`) |
+| `POSTGRES_PORT` | Non | Port (défaut: `5432`) |
+
+#### ChromaDB
+
+| Variable | Obligatoire | Description |
+|----------|------------|-------------|
+| `CHROMA_HOST` | Non | Hôte ChromaDB (défaut: `localhost`) |
+| `CHROMA_PORT` | Non | Port ChromaDB (défaut: `8000`) |
+| `CHROMA_PERSIST_DIR` | Non | Répertoire de persistance (défaut: `data/gold/chroma`) |
+
+#### Dagster
+
+| Variable | Obligatoire | Description |
+|----------|------------|-------------|
+| `DAGSTER_HOME` | Oui | **Chemin absolu** vers le répertoire Dagster (ex: `/home/user/nephila/.dagster`) |
+
+#### SSL — Certificats CA gouvernementaux français
+
+| Variable | Obligatoire | Description |
+|----------|------------|-------------|
+| `SSL_CERT_FILE` | Oui | **Chemin absolu** vers le bundle CA personnalisé |
+
+Les sites ANSM et BDPM utilisent des certificats signés par **Certigna Services CA**, non inclus dans les bundles CA standard. Sans cette variable, les téléchargements de données échoueront.
+
+```bash
+# Générer le bundle CA
+bash scripts/build_ca_bundle.sh
+# Le bundle est créé dans certs/ca-bundle.pem
+```
+
+#### LangSmith (observabilité optionnelle)
+
+| Variable | Obligatoire | Description |
+|----------|------------|-------------|
+| `LANGCHAIN_TRACING_V2` | Non | Activer le tracing LangSmith (`true`/`false`) |
+| `LANGCHAIN_API_KEY` | Non | Clé API LangSmith |
+| `LANGCHAIN_PROJECT` | Non | Nom du projet LangSmith (défaut: `nephila`) |
+
+## Services Docker
+
+```bash
+# Démarrer PostgreSQL + ChromaDB
+docker compose up -d
+
+# Arrêter les services
+docker compose down
+
+# Vérifier l'état des services
+docker compose ps
+```
+
+### Ports exposés
+
+| Service | Port | Description |
+|---------|------|-------------|
+| PostgreSQL | `5432` | Base de données |
+| ChromaDB | `8000` | Vector store HTTP API |
+
+## Vérification de l'installation
+
+```bash
+# Qualité du code
+uv run ruff check src/
+uv run ruff format src/
+uv run mypy src/
+
+# Tests
+uv run pytest
+uv run pytest tests/pipeline/ -v
+
+# dbt
+uv run dbt compile --project-dir dbt --profiles-dir dbt
+```
+
+## Lancer Dagster
+
+```bash
+uv run dagster dev
+# Interface disponible sur http://localhost:3000
+```
+
+<Note>
+Toutes les variables d'environnement sont chargées via `load_dotenv()` à l'entrypoint. Ne pas utiliser `SettingsConfigDict(env_file=...)` — `BaseSettings` lit depuis `os.environ`.
+</Note>

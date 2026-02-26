@@ -1,0 +1,97 @@
+---
+title: "Bronze Layer"
+description: "Raw data download and parsing — BDPM text files and ANSM PDF"
+---
+
+## Overview
+
+The Bronze layer downloads official pharmaceutical data from French government sources and stores it as-is on disk under `data/bronze/`.
+
+```
+data/bronze/
+├── bdpm/
+│   ├── CIS_bdpm.txt
+│   ├── CIS_CIP_bdpm.txt
+│   ├── CIS_COMPO_bdpm.txt
+│   ├── CIS_GENER_bdpm.txt
+│   ├── CIS_CPD_bdpm.txt
+│   └── CIS_InfoImportantes.txt
+└── ansm/
+    └── thesaurus_interactions.pdf
+```
+
+## BDPM Files
+
+**Source**: [data.gouv.fr](https://www.data.gouv.fr) — public open data
+**Encoding**: ISO-8859-1
+**Separator**: tab (`\t`)
+
+| File | Raw table | Key columns |
+|------|-----------|-------------|
+| `CIS_bdpm.txt` | `raw.cis_bdpm` | cis, denomination, forme_pharma, etat_commercialisation |
+| `CIS_CIP_bdpm.txt` | `raw.cis_cip_bdpm` | cis, cip7, cip13, libelle_presentation |
+| `CIS_COMPO_bdpm.txt` | `raw.cis_compo_bdpm` | cis, code_substance, dosage, nature_composant |
+| `CIS_GENER_bdpm.txt` | `raw.cis_gener_bdpm` | id_groupe, cis, type_generique |
+| `CIS_CPD_bdpm.txt` | `raw.cis_cpd_bdpm` | cis, condition_prescription_delivrance |
+| `CIS_InfoImportantes.txt` | `raw.cis_infoimportantes` | cis, texte_info_importante (RCP link) |
+
+The downloader is implemented in `pipeline/io/downloader_bdpm.py`. The loader (`pipeline/io/loader_bdpm.py`) bulk-loads all files into PostgreSQL `raw` schema using pandas + SQLAlchemy.
+
+## ANSM Thésaurus PDF
+
+**Source**: ANSM official website
+**Format**: PDF (multi-page, text layout — not structured tables)
+
+The downloader scrapes the ANSM page to find the latest PDF URL and downloads it.
+
+<Warning>
+The ANSM and BDPM websites use certificates signed by **Certigna Services CA**, which is not in the standard CA bundle. A custom CA bundle must be built using `scripts/build_ca_bundle.sh` and referenced via the `SSL_CERT_FILE` environment variable.
+</Warning>
+
+## ANSM PDF Parser
+
+The parser (`pipeline/io/parser_ansm.py`) uses **pdfplumber** with line-by-line heuristics to extract interaction records from the PDF's text-column layout.
+
+### Parsing logic
+
+The PDF is structured as a flat text stream with no tables. The parser identifies three types of lines:
+
+1. **Substance A header** — ALL_CAPS line (3–80 chars), no leading `+`, not a page number
+2. **Substance B** — line starting with `+`
+3. **Description** — any other line accumulated as interaction text
+
+```
+PARACETAMOL                    ← substance A
++ WARFARINE                    ← substance B
+Précaution d'emploi            ← description (constraint level)
+Risque d'augmentation des INR  ← description (risk detail)
+```
+
+### Constraint levels
+
+The parser recognizes four ANSM constraint levels (priority order):
+
+| Level | Aliases |
+|-------|---------|
+| `Contre-indication` | CI |
+| `Association déconseillée` | ASDEC |
+| `Précaution d'emploi` | PE |
+| `A prendre en compte` | APEC |
+
+### Output record
+
+Each parsed interaction produces:
+
+```python
+{
+    "substance_a": "PARACETAMOL",
+    "substance_b": "WARFARINE",
+    "niveau_contrainte": "Précaution d'emploi",
+    "nature_risque": "Risque d'augmentation des INR",
+    "conduite_a_tenir": None  # not extractable from this PDF layout
+}
+```
+
+<Note>
+`conduite_a_tenir` is always `None` — the PDF layout does not allow reliable separation of risk nature from recommended action.
+</Note>

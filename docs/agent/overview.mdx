@@ -1,0 +1,79 @@
+---
+title: "Vue d'ensemble de l'agent"
+description: "Machine à états LangGraph ReAct — graphe et état de l'agent"
+---
+
+## Architecture ReAct
+
+L'agent Nephila est implémenté avec **LangGraph** comme machine à états finie. Il suit le pattern **ReAct** (Reasoning + Acting) : le LLM alterne entre raisonnement et appels d'outils jusqu'à produire une réponse finale.
+
+```
+START → [agent] ──► tool_calls? ──► [tools] ──► [agent] (loop)
+                 └─► no tool_calls ──► [guardrail] ──► critical? ──► [warn] → END
+                                                    └─► ok ──────► [response] → END
+```
+
+### Nœuds du graphe
+
+| Nœud | Rôle |
+|------|------|
+| `agent` | LLM avec outils liés (boucle ReAct) |
+| `tools` | `ToolNode` LangGraph — exécute l'outil appelé par le LLM |
+| `guardrail` | Nœud **obligatoire** avant chaque réponse finale — analyse les interactions trouvées |
+| `response` | Formule la réponse finale, extrait le `source_cis` |
+| `warn` | Bloque la réponse en cas d'interaction critique |
+
+### Routage conditionnel
+
+Deux arêtes conditionnelles pilotent le flux :
+
+1. **Après `agent`** : si le dernier message contient des `tool_calls` → `tools`, sinon → `guardrail`
+2. **Après `guardrail`** : si une interaction critique est détectée → `warn`, sinon → `response`
+
+## LLM et outils
+
+Le LLM est configuré via **OpenRouter** (modèle configurable). Il est lié aux 4 outils disponibles via `llm.bind_tools(TOOLS)`.
+
+```python
+TOOLS = [search_drug, find_generics, check_interactions, get_rcp]
+```
+
+Le prompt système impose des règles non négociables :
+- Appeler `check_interactions` avant toute recommandation
+- Ne jamais donner de conseil médical direct
+- Toujours inclure le code CIS
+- Rapporter chaque interaction avec son niveau de contrainte ANSM
+
+## État de l'agent (`AgentState`)
+
+L'état est défini dans `agent/model_state.py` (Pydantic + `add_messages`) :
+
+| Champ | Type | Rôle |
+|-------|------|------|
+| `messages` | `Annotated[list, add_messages]` | Conversation complète (géré par LangGraph) |
+| `cis_codes` | `list[str]` | Codes CIS mentionnés dans la conversation |
+| `interactions_found` | `list[dict]` | Extraites par le guardrail (`niveau_contrainte`, `detail`) |
+| `interactions_checked` | `bool` | Mis à `True` par le nœud guardrail |
+| `source_cis` | `str \| None` | Premier CIS extrait des ToolMessages |
+
+## Utilisation
+
+```python
+from nephila.agent.graph_agent import graph
+
+# Invoquer l'agent
+result = graph.invoke({
+    "messages": [
+        {"role": "user", "content": "Y a-t-il des interactions entre l'ibuprofène et l'aspirine ?"}
+    ]
+})
+
+# Réponse finale
+print(result["messages"][-1].content)
+
+# Interactions trouvées
+print(result["interactions_found"])
+
+# CIS source
+print(result["source_cis"])
+```

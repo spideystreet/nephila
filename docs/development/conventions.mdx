@@ -1,0 +1,112 @@
+---
+title: "Conventions"
+description: "File naming, commit format, dbt contracts, git author configuration"
+---
+
+## Python File Naming
+
+```
+<type>_<function>.py
+```
+
+| Type prefix | Usage |
+|-------------|-------|
+| `asset_` | Dagster asset definitions |
+| `loader_` | Data loading into PostgreSQL |
+| `parser_` | Raw data parsing (PDF, text) |
+| `model_` | Data models (Pydantic, dataclasses) |
+| `config_` | Configuration and settings |
+| `builder_` | Document / object builders |
+| `embedder_` | Embedding utilities |
+| `tool_` | LangChain agent tools |
+| `node_` | LangGraph agent nodes |
+
+Examples: `asset_bronze.py`, `loader_bdpm.py`, `parser_ansm.py`, `model_state.py`
+
+## dbt Model Naming
+
+```
+<layer>_<source>__<entity>.sql
+```
+
+Examples: `silver_bdpm__medicament.sql`, `silver_ansm__interaction.sql`
+
+## dbt Contracts
+
+Each `.sql` model has a **matching `.yml` contract** with the same name:
+
+```
+models/silver/
+├── silver_bdpm__medicament.sql
+├── silver_bdpm__medicament.yml    ← contract
+├── silver_ansm__interaction.sql
+└── silver_ansm__interaction.yml   ← contract
+```
+
+No shared `schema.yml`. The `.yml` is the single source of truth for columns, descriptions, and data tests.
+
+## Environment Variables
+
+- **No default values** for sensitive variables (API keys, passwords, usernames, database names) — in code, docker-compose, or dbt profiles
+- Non-sensitive variables (host, port) may have defaults
+- Reference in dbt: `{{ env_var('VAR') }}` without fallback for sensitive vars
+
+## Git Commit Format
+
+```
+<type>(<scope>): <description>
+
+Co-Authored-By: spidecode-bot <263227865+spicode-bot@users.noreply.github.com>
+```
+
+### Commit types
+
+| Type | Usage |
+|------|-------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `refactor` | Code refactoring (no behavior change) |
+| `test` | Adding or updating tests |
+| `docs` | Documentation only |
+| `chore` | Maintenance, dependencies, config |
+| `ci` | CI/CD changes |
+
+### Examples
+
+```
+feat(pipeline): add ANSM PDF downloader with Certigna SSL support
+fix(parser): exclude page numbers from substance A detection
+test(dbt): add singular tests for silver_ansm__interaction
+```
+
+## Git Author Configuration
+
+All commits must use:
+
+```
+Author:    spideystreet <dhicham.pro@gmail.com>
+Co-Author: spidecode-bot <263227865+spicode-bot@users.noreply.github.com>
+```
+
+The co-author line is **mandatory** in every commit message.
+
+## Pull Requests
+
+- **Author**: spicode-bot
+- **Reviewer**: spideystreet
+
+## Code Language
+
+- All **code comments**, **docstrings**, and inline documentation: **English**
+- Product documentation, user-facing content: **French**
+- Variable names, function names: **English** (snake_case)
+
+## ChromaDB Index Naming
+
+```
+idx_<source>_<content>_<model_version>
+```
+
+Examples: `idx_bdpm_medicament_v1`, `idx_ansm_interaction_v1`
+
+Increment the version suffix when the embedding model or document schema changes.

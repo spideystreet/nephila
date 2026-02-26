@@ -1,0 +1,74 @@
+---
+title: "Silver Layer"
+description: "dbt transformations — raw PostgreSQL data normalized to silver schema"
+---
+
+## Overview
+
+The Silver layer transforms raw Bronze data into normalized, validated SQL tables using **dbt**. The `silver_dbt` Dagster asset runs all dbt models and applies contracts.
+
+```
+raw.cis_bdpm          ──►  silver.silver_bdpm__medicament
+raw.cis_cip_bdpm      ──►  silver.silver_bdpm__presentation
+raw.cis_compo_bdpm    ──►  silver.silver_bdpm__composition
+                           silver.silver_bdpm__substance
+raw.cis_gener_bdpm    ──►  silver.silver_bdpm__groupe_generique
+                           silver.silver_bdpm__generique
+raw.cis_cpd_bdpm      ──►  silver.silver_bdpm__condition_delivrance
+raw.cis_infoimportantes ► silver.silver_bdpm__info_importante
+raw.ansm_thesaurus    ──►  silver.silver_ansm__interaction
+```
+
+## BDPM Loader
+
+`pipeline/io/loader_bdpm.py` bulk-loads the BDPM `.txt` files into the `raw` PostgreSQL schema using **pandas** + **SQLAlchemy**:
+
+- Reads files with encoding `ISO-8859-1` and tab separator
+- Column names are defined in `loader_bdpm.BDPM_FILE_COLUMNS`
+- Uses `to_sql()` with `if_exists='replace'` for idempotent loads
+
+## dbt Models
+
+All Silver models are materialized as `TABLE` in the `silver` schema. Each model has a matching `.yml` contract file.
+
+### BDPM models (`silver_bdpm__*`)
+
+| Model | Description |
+|-------|-------------|
+| `silver_bdpm__medicament` | Drug specialties — CIS, denomination, form, marketing status |
+| `silver_bdpm__presentation` | Presentations (boxes) — CIP7, CIP13, libelle |
+| `silver_bdpm__composition` | Substance composition per specialty — dosage, nature |
+| `silver_bdpm__substance` | Unique substances reference |
+| `silver_bdpm__groupe_generique` | Generic groups |
+| `silver_bdpm__generique` | Generic ↔ originator linkage |
+| `silver_bdpm__condition_delivrance` | Prescription/dispensing conditions |
+| `silver_bdpm__info_importante` | RCP links per specialty |
+
+### ANSM model (`silver_ansm__*`)
+
+| Model | Description |
+|-------|-------------|
+| `silver_ansm__interaction` | Drug interactions — substance A × B, constraint level, risk |
+
+## Running dbt
+
+```bash
+# Run all silver models
+uv run dbt run --project-dir dbt --profiles-dir dbt
+
+# Run tests (contracts)
+uv run dbt test --project-dir dbt --profiles-dir dbt
+
+# Run a specific model
+uv run dbt run --project-dir dbt --profiles-dir dbt --select silver_bdpm__medicament
+```
+
+## Sources
+
+All raw tables are declared in `dbt/models/sources.yml` under source `raw`:
+
+```sql
+-- Reference raw tables in dbt models
+{{ source('raw', 'cis_bdpm') }}
+{{ source('raw', 'ansm_thesaurus') }}
+```

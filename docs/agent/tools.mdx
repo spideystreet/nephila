@@ -1,0 +1,92 @@
+---
+title: "Tools"
+description: "The four LangChain tools available to the Nephila agent"
+---
+
+## Overview
+
+The agent has access to four tools, each backed by a specific data source. Tools are defined in `agent/tools/` and bound to the LLM via `llm.bind_tools(TOOLS)`.
+
+## Tool Reference
+
+| Tool | File | Data source | Description |
+|------|------|-------------|-------------|
+| `search_drug` | `tool_search_drug.py` | ChromaDB `idx_bdpm_medicament_v1` | Semantic search over BDPM drug specialties |
+| `find_generics` | `tool_find_generics.py` | Silver `silver_bdpm__generique` | Find generic equivalents by CIS code |
+| `check_interactions` | `tool_check_interactions.py` | ChromaDB `idx_ansm_interaction_v1` | ANSM drug interaction lookup |
+| `get_rcp` | `tool_get_rcp.py` | Silver `silver_bdpm__info_importante` | Retrieve the official RCP link for a specialty |
+
+## `search_drug`
+
+Performs a **semantic vector search** against the BDPM drug index in ChromaDB.
+
+- Input: free-text query (drug name, INN, brand name)
+- Output: list of matching specialties with CIS code, denomination, form, marketing status
+- Index: `idx_bdpm_medicament_v1` — embeddings of denomination + composition
+
+```python
+# Example invocation by the LLM
+search_drug("paracétamol comprimé 1g")
+# → [{"cis": "60013674", "denomination": "DOLIPRANE 1000 mg", ...}]
+```
+
+## `find_generics`
+
+SQL lookup against the Silver `silver_bdpm__generique` table.
+
+- Input: CIS code of the originator specialty
+- Output: list of generics in the same group (CIS, denomination, type)
+- Source: `silver_bdpm__generique` joined with `silver_bdpm__medicament`
+
+## `check_interactions`
+
+Dual-strategy lookup against the ANSM interaction data.
+
+- Input: **ANSM pharmacological class name** (preferred) or individual substance name as fallback
+- Output: list of interactions with constraint level and risk description
+- Result format: `[Contre-indication] SUBSTANCE_A + SUBSTANCE_B: risk detail`
+
+**Strategy 1 — SQL ILIKE (primary)**: exact/partial match against `silver.silver_ansm__interaction`, sorted by constraint level severity. Returns up to 20 results.
+
+**Strategy 2 — ChromaDB vector search (fallback)**: semantic search against `idx_ansm_interaction_v1` for class names the LLM could not resolve. Results are deduplicated across both strategies.
+
+<Note>
+The ANSM Thésaurus indexes interactions by **drug class names**, not individual substance names. The LLM must resolve substance → class before calling this tool.
+
+| Substance | ANSM class to use |
+|-----------|------------------|
+| warfarine, acenocoumarol, fluindione | `ANTIVITAMINES K` |
+| aspirine (antiagrégant) | `ANTIAGREGANTS PLAQUETTAIRES` |
+| ciprofloxacine, lévofloxacine | `FLUOROQUINOLONES` |
+| MAOIs | `INHIBITEURS DE LA MAO` |
+| SSRIs | `INHIBITEURS DE RECAPTURE DE LA SEROTONINE` |
+| statines | `STATINES` |
+</Note>
+
+<Warning>
+This tool **must** be called before any drug recommendation. The guardrail node enforces this by checking `interactions_checked` in the agent state.
+</Warning>
+
+## `get_rcp`
+
+SQL lookup against `silver_bdpm__info_importante` for the official RCP link.
+
+- Input: CIS code
+- Output: URL of the official Résumé des Caractéristiques du Produit (RCP)
+- Source: `silver_bdpm__info_importante.texte_info_importante`
+
+The RCP must be cited in every final response — this is a non-negotiable guardrail rule.
+
+## Tool call flow
+
+```
+User: "Interactions entre warfarine et paracétamol ?"
+
+agent → search_drug("warfarine")        → cis: 60013674
+agent → search_drug("paracétamol")      → cis: 60013674
+agent → check_interactions("warfarine + paracétamol")
+        → [Précaution d'emploi] WARFARINE + PARACETAMOL: risque d'augmentation des INR
+agent → get_rcp("60013674")             → https://...
+agent → guardrail (interactions_checked=True)
+agent → response (source_cis="60013674")
+```
