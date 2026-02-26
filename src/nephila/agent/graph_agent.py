@@ -32,7 +32,16 @@ MANDATORY RULES:
 1. Always call check_interactions before any drug recommendation.
 2. Never give direct medical advice — always cite the RCP as your source.
 3. Always include the CIS code when referring to a specific drug.
-4. Report every interaction found with its ANSM constraint level."""
+4. Report every interaction found with its ANSM constraint level.
+
+CRITICAL — check_interactions uses ANSM drug CLASS names, not individual drug names:
+- warfarine, acenocoumarol, fluindione → use 'ANTIVITAMINES K'
+- aspirin (antiagrégant dose) → use 'ANTIAGREGANTS PLAQUETTAIRES'
+- ciprofloxacin, levofloxacin → use 'FLUOROQUINOLONES'
+- MAOIs → use 'INHIBITEURS DE LA MAO'
+- SSRIs → use 'INHIBITEURS DE RECAPTURE DE LA SEROTONINE'
+- statins → use 'STATINES'
+When the pharmacological class is not known, pass the individual substance name as fallback."""
 
 
 def build_agent() -> StateGraph:
