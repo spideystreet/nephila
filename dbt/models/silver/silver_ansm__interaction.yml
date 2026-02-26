@@ -5,9 +5,11 @@ models:
     description: "Drug interactions from ANSM Thésaurus."
     columns:
       - name: substance_a
+        description: "Interacting substance A (all-caps header from the ANSM PDF)."
         data_tests:
           - not_null
       - name: substance_b
+        description: "Interacting substance B (prefixed with '+' in the source PDF)."
         data_tests:
           - not_null
       - name: niveau_contrainte
@@ -22,4 +24,7 @@ models:
                 - "Association déconseillée"
                 - "Précaution d'emploi"
                 - "A prendre en compte"
-                - "À prendre en compte"
+      - name: nature_risque
+        description: "Description of the interaction risk (constraint label stripped out)."
+      - name: conduite_a_tenir
+        description: "Recommended course of action. Always null — not extractable from this PDF layout."
