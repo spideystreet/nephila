@@ -1,0 +1,88 @@
+---
+title: "Gold Layer"
+description: "Vector embeddings — sentence-transformers + ChromaDB indexing"
+---
+
+## Overview
+
+The Gold layer converts Silver SQL tables into dense vector embeddings stored in **ChromaDB** for semantic search. The `gold_embeddings` Dagster asset builds two collections.
+
+## Embedding Model
+
+Nephila uses a **local** HuggingFace model — no external API calls, no data leaving the machine.
+
+| Setting | Value |
+|---------|-------|
+| Model | `intfloat/multilingual-e5-base` (default) |
+| Library | `sentence-transformers` via `chromadb.utils.embedding_functions` |
+| API cost | Zero — runs entirely on local CPU/GPU |
+| Download | First use only — cached in HuggingFace cache directory |
+
+The model is configured via the `EMBEDDING_MODEL` environment variable.
+
+```python
+# pipeline/io/embedder_local.py
+def get_embedding_function(model_name: str) -> SentenceTransformerEmbeddingFunction:
+    return SentenceTransformerEmbeddingFunction(model_name=model_name)
+```
+
+## ChromaDB Collections
+
+### Index naming convention
+
+```
+idx_<source>_<content>_<model_version>
+```
+
+| Collection | Source | Content |
+|------------|--------|---------|
+| `idx_bdpm_medicament_v1` | `silver_bdpm__medicament` + `silver_bdpm__composition` | Drug specialties with composition |
+| `idx_ansm_interaction_v1` | `silver_ansm__interaction` | Drug interactions with constraint levels |
+
+### Document builders
+
+`pipeline/io/builder_documents.py` builds the `(ids, documents, metadatas)` tuples:
+
+- `build_medicament_documents(engine)` — joins medicament + composition tables
+- `build_interaction_documents(engine)` — reads interaction table, formats text as `[LEVEL] SubstanceA + SubstanceB: risk`
+
+### Upsert strategy
+
+Documents are upserted in batches of 100 using `collection.upsert()`. This makes the gold layer fully idempotent — re-materializing will update existing documents.
+
+```python
+# Batch upsert loop
+for i in range(0, total, BATCH_SIZE):
+    collection.upsert(
+        ids=ids[i:i+BATCH_SIZE],
+        documents=documents[i:i+BATCH_SIZE],
+        metadatas=metadatas[i:i+BATCH_SIZE],
+    )
+```
+
+## ChromaDB Configuration
+
+ChromaDB runs as a Docker container (persistent mode):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CHROMA_HOST` | `localhost` | ChromaDB HTTP host |
+| `CHROMA_PORT` | `8000` | ChromaDB HTTP port |
+| `CHROMA_PERSIST_DIR` | `data/gold/chroma` | Persistence directory (inside container) |
+
+```bash
+# Start ChromaDB
+docker compose up -d chromadb
+
+# Check health
+curl http://localhost:8000/api/v1/heartbeat
+```
+
+## Metadata Filtering
+
+Each document in ChromaDB carries metadata for filtered queries:
+
+- **Medicament index**: `cis` (drug specialty code), `denomination`, `etat_commercialisation`
+- **Interaction index**: `substance_a`, `substance_b`, `niveau_contrainte`
+
+The agent tools use metadata filtering to narrow semantic search results.

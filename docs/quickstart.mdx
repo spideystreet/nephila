@@ -1,0 +1,116 @@
+---
+title: "Démarrage rapide"
+description: "De zéro à un agent fonctionnel en 5 étapes"
+---
+
+## Prérequis
+
+- Python 3.11+
+- [uv](https://docs.astral.sh/uv/) — gestionnaire de paquets Python
+- Docker + Docker Compose
+- Git
+
+## Étape 1 — Cloner et installer
+
+```bash
+git clone https://github.com/spideystreet/nephila.git
+cd nephila
+
+# Installer les dépendances (prod + dev)
+uv sync && uv sync --extra dev
+```
+
+## Étape 2 — Configurer l'environnement
+
+```bash
+cp .env.example .env
+```
+
+Renseigner les variables obligatoires dans `.env` :
+
+```bash
+# LLM via OpenRouter
+OPENROUTER_API_KEY="sk-or-..."
+OPENROUTER_MODEL="anthropic/claude-3-5-sonnet"
+
+# PostgreSQL
+POSTGRES_USER="nephila"
+POSTGRES_PASSWORD="votre-mot-de-passe"
+POSTGRES_DB="nephila"
+
+# Dagster (chemin absolu)
+DAGSTER_HOME="/chemin/absolu/vers/nephila/.dagster"
+
+# SSL — certificats CA pour les sites du gouvernement français
+SSL_CERT_FILE="/chemin/absolu/vers/nephila/certs/ca-bundle.pem"
+```
+
+<Tip>
+Les variables `POSTGRES_HOST`, `POSTGRES_PORT`, `CHROMA_HOST`, `CHROMA_PORT` ont des valeurs par défaut (`localhost:5432`, `localhost:8000`) et n'ont pas besoin d'être modifiées pour un usage local.
+</Tip>
+
+### Certificats SSL (sites gouvernementaux)
+
+Les sites ANSM et BDPM utilisent des certificats signés par **Certigna Services CA**. Sans ce bundle, les téléchargements échoueront.
+
+```bash
+# Générer le bundle CA
+bash scripts/build_ca_bundle.sh
+```
+
+## Étape 3 — Démarrer les services
+
+```bash
+docker compose up -d
+```
+
+Cela démarre :
+- **PostgreSQL 16** sur le port `5432`
+- **ChromaDB** sur le port `8000`
+
+Vérifier que les services sont healthy :
+
+```bash
+docker compose ps
+```
+
+## Étape 4 — Lancer le pipeline Dagster
+
+```bash
+uv run dagster dev
+```
+
+L'interface Dagster est disponible sur [http://localhost:3000](http://localhost:3000).
+
+Matérialiser les assets dans l'ordre :
+
+```bash
+# Bronze — téléchargement des données brutes
+uv run dagster asset materialize --select bronze
+
+# Silver — transformations dbt (raw → silver)
+uv run dagster asset materialize --select silver_dbt
+
+# Gold — embeddings ChromaDB
+uv run dagster asset materialize --select gold_embeddings
+```
+
+Ou depuis l'interface web : sélectionner tous les assets → **Materialize all**.
+
+## Étape 5 — Interroger l'agent
+
+Une fois le pipeline complété, lancer l'agent :
+
+```python
+from nephila.agent.graph_agent import graph
+
+result = graph.invoke({
+    "messages": [{"role": "user", "content": "Quelles sont les interactions du paracétamol avec la warfarine ?"}]
+})
+
+print(result["messages"][-1].content)
+```
+
+<Note>
+LangSmith est optionnel mais recommandé pour observer les traces de l'agent. Configurer `LANGCHAIN_API_KEY` et `LANGCHAIN_TRACING_V2=true` dans `.env`.
+</Note>

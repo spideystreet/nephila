@@ -1,0 +1,63 @@
+---
+title: "Vue d'ensemble du pipeline"
+description: "Architecture en médaillon et graphe d'assets Dagster"
+---
+
+## Architecture en médaillon
+
+Le pipeline de données Nephila suit une architecture **Bronze → Silver → Gold** :
+
+| Couche | Rôle | Stockage |
+|--------|------|----------|
+| **Bronze** | Données brutes téléchargées telles quelles | `data/bronze/{bdpm/, ansm/}` (fichiers disque) |
+| **Silver** | Données normalisées et validées | PostgreSQL — schémas `raw` puis `silver` (via dbt) |
+| **Gold** | Embeddings vectoriels pour la recherche sémantique | ChromaDB (self-hosted) |
+
+L'orchestration est assurée par **Dagster**. Les transformations SQL sont gérées par **dbt**.
+
+## Graphe d'assets
+
+```
+bdpm_raw ──────────┐
+                   ├──► bdpm_to_raw ──┐
+ansm_thesaurus_raw ─► ansm_to_raw ───┴──► silver_dbt ──► gold_embeddings
+```
+
+### Description des assets
+
+| Asset | Groupe | Description |
+|-------|--------|-------------|
+| `bdpm_raw` | bronze | Télécharge les fichiers `.txt` BDPM depuis data.gouv.fr |
+| `ansm_thesaurus_raw` | bronze | Télécharge le PDF du Thésaurus ANSM |
+| `bdpm_to_raw` | bronze | Parse et charge les fichiers BDPM dans `raw.*` (PostgreSQL) |
+| `ansm_to_raw` | bronze | Parse le PDF ANSM (pdfplumber) → insère dans `raw.ansm_thesaurus` |
+| `silver_dbt` | silver | Exécute les modèles dbt `silver_bdpm__*` et `silver_ansm__*` |
+| `gold_embeddings` | gold | Génère les embeddings et les upserte dans ChromaDB |
+
+## Orchestration Dagster
+
+L'entrypoint Dagster est dans `pipeline/definitions.py`. Les ressources (connexion PostgreSQL, ChromaDB) sont injectées via `PipelineSettings`.
+
+```bash
+# Lancer l'interface Dagster
+uv run dagster dev
+
+# Matérialiser un groupe d'assets
+uv run dagster asset materialize --select bronze
+uv run dagster asset materialize --select silver_dbt
+uv run dagster asset materialize --select gold_embeddings
+```
+
+<Note>
+Les assets doivent être matérialisés dans l'ordre : bronze → silver → gold. Chaque couche dépend de la précédente.
+</Note>
+
+## Fichiers clés
+
+| Fichier | Rôle |
+|---------|------|
+| `pipeline/config_pipeline.py` | `PipelineSettings` — toutes les variables d'environnement |
+| `pipeline/definitions.py` | Entrypoint Dagster (`Definitions`) |
+| `pipeline/assets/asset_bronze.py` | Assets de la couche Bronze |
+| `pipeline/assets/asset_silver.py` | Asset Silver (`silver_dbt`) |
+| `pipeline/assets/asset_gold.py` | Asset Gold (`gold_embeddings`) |

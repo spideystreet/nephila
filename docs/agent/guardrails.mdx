@@ -1,0 +1,92 @@
+---
+title: "Guardrails"
+description: "Mandatory safety layer — interaction detection, warn node, CIS traceability"
+---
+
+## Overview
+
+The guardrail system is **non-negotiable**: it runs before every final LLM response, regardless of what the agent decided. It cannot be bypassed.
+
+## Guardrail Node
+
+`agent/nodes/node_guardrail.py` — executed on every path to a final response.
+
+### What it does
+
+1. Scans **all** `ToolMessage` objects in the conversation history
+2. Extracts lines matching the pattern `[LEVEL] SubstanceA + SubstanceB`
+3. Populates `interactions_found` and sets `interactions_checked = True` in `AgentState`
+
+```python
+# Pattern matched in ToolMessage content
+r"\[([^\]]+)\]\s+(.+?)(?:\n|$)"
+# → captures: level="Contre-indication", detail="WARFARINE + PARACETAMOL"
+```
+
+### Output
+
+```python
+{
+    "interactions_found": [
+        {"niveau_contrainte": "Précaution d'emploi", "detail": "WARFARINE + PARACETAMOL"}
+    ],
+    "interactions_checked": True
+}
+```
+
+## Routing: `should_warn`
+
+After the guardrail node, a conditional edge routes to either `warn` or `response`:
+
+```python
+CRITICAL_LEVELS = frozenset({"contre-indication", "association déconseillée"})
+
+def should_warn(state: AgentState) -> str:
+    for interaction in state.interactions_found:
+        if interaction.get("niveau_contrainte", "").lower() in CRITICAL_LEVELS:
+            return "warn"
+    return "response"
+```
+
+| Constraint Level | Route |
+|-----------------|-------|
+| `Contre-indication` | → `warn` (blocks response) |
+| `Association déconseillée` | → `warn` (blocks response) |
+| `Précaution d'emploi` | → `response` (with warning in message) |
+| `A prendre en compte` | → `response` (informational) |
+
+## Warn Node
+
+`agent/nodes/node_warn.py` — fires when a critical interaction is detected.
+
+The warn node does **not** let the LLM produce a free-form answer. It outputs a structured blocking message that:
+- Names the critical interaction(s) found
+- States the constraint level (Contre-indication / Association déconseillée)
+- Directs the user to consult a healthcare professional
+- References the RCP
+
+## Response Node
+
+`agent/nodes/node_response.py` — fires when no critical interaction is detected.
+
+Responsibilities:
+1. Extract `source_cis` from `ToolMessage` content (first CIS code found)
+2. Populate `AgentState.source_cis` for traceability
+3. Pass through the LLM's answer (with any non-critical interaction warnings)
+
+## CIS Traceability
+
+Every final response — whether from `response` or `warn` — must have `source_cis` set. This ensures that:
+- Every answer is traceable to a specific drug specialty
+- Audit logs can reference the exact BDPM record used
+- The RCP link is tied to a known CIS code
+
+## Guardrail Rules Summary
+
+| Rule | Enforcement |
+|------|-------------|
+| `check_interactions` called before response | System prompt + `interactions_checked` flag |
+| Critical interactions block the response | `should_warn` conditional edge |
+| Every response cites the RCP | System prompt + `response` node |
+| Every response has `source_cis` | `response` and `warn` nodes |
+| No direct medical advice | System prompt |
