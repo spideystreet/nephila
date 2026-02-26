@@ -15,20 +15,8 @@ jobs:
       - uses: astral-sh/setup-uv@v4
         with:
           version: "latest"
-      - run: uv sync --extra dev
-      - run: uv run ruff check src/
-      - run: uv run ruff format --check src/
-
-  typecheck:
-    name: Type check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v4
-        with:
-          version: "latest"
-      - run: uv sync --extra dev
-      - run: uv run mypy src/
+      - run: uvx ruff check src/
+      - run: uvx ruff format --check src/
 
   sql-lint:
     name: SQL lint (dbt models)
@@ -38,8 +26,19 @@ jobs:
       - uses: astral-sh/setup-uv@v4
         with:
           version: "latest"
+      - run: uvx --with sqlfluff-templater-dbt sqlfluff lint dbt/models/ --config dbt/.sqlfluff
+
+  typecheck:
+    name: Type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+          enable-cache: true
       - run: uv sync --extra dev
-      - run: uv run sqlfluff lint dbt/models/ --config dbt/.sqlfluff
+      - run: uv run mypy src/
 
   test:
     name: Tests
@@ -49,5 +48,6 @@ jobs:
       - uses: astral-sh/setup-uv@v4
         with:
           version: "latest"
+          enable-cache: true
       - run: uv sync --extra dev
       - run: uv run pytest tests/ -v
