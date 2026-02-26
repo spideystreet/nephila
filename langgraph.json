@@ -1,0 +1,8 @@
+{
+  "graphs": {
+    "nephila_agent": "./src/nephila/agent/graph_agent.py:graph"
+  },
+  "python_version": "3.11",
+  "dependencies": ["."],
+  "env": ".env"
+}

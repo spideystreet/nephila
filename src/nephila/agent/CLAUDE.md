@@ -2,7 +2,7 @@
 
 ## LangGraph ReAct State Machine
 
-State defined in `model_state.py` (`AgentState` — Pydantic + `add_messages`).
+State defined in `model_state.py` (`AgentState` — TypedDict + `add_messages`).
 
 ```
 START → [agent] ──► tool_calls? ──► [tools] ──► [agent] (loop)
@@ -45,3 +45,23 @@ START → [agent] ──► tool_calls? ──► [tools] ──► [agent] (loo
 ## ChromaDB Index Naming
 
 `idx_<source>_<content>_<model_version>` — e.g. `idx_bdpm_medicament_v1`, `idx_ansm_interaction_v1`
+
+## LangGraph Studio (conversational UI)
+
+```bash
+# Install CLI (dev extra)
+uv sync --extra dev
+
+# Start local dev server (port 2024)
+uv run langgraph dev
+
+# Then open: https://smith.langchain.com/studio
+# Connect to: http://localhost:2024
+```
+
+Requires in `.env`:
+- `LANGSMITH_API_KEY` — LangSmith API key
+- `LANGSMITH_TRACING=true`
+- `LANGSMITH_PROJECT=nephila`
+
+Graph entrypoint declared in `langgraph.json` at project root.

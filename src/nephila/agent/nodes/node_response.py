@@ -10,7 +10,7 @@ def response_node(state: AgentState) -> dict:
     """Extract the primary source_cis from tool results for traceability."""
     source_cis: str | None = None
 
-    for msg in state.messages:
+    for msg in state["messages"]:
         if isinstance(msg, ToolMessage) and "CIS " in msg.content:
             match = re.search(r"CIS (\d+)", msg.content)
             if match:

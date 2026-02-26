@@ -56,13 +56,13 @@ def build_agent() -> StateGraph:
     llm_with_tools = llm.bind_tools(TOOLS)
 
     def agent_node(state: AgentState) -> dict:
-        messages = list(state.messages)
+        messages = list(state["messages"])
         if not messages or not isinstance(messages[0], SystemMessage):
             messages = [SystemMessage(content=SYSTEM_PROMPT)] + messages
         return {"messages": [llm_with_tools.invoke(messages)]}
 
     def routing(state: AgentState) -> str:
-        last = state.messages[-1]
+        last = state["messages"][-1]
         if hasattr(last, "tool_calls") and last.tool_calls:
             return "tools"
         return "guardrail"

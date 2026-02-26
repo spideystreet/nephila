@@ -67,7 +67,7 @@ def check_interactions(substance: str) -> str:
 
     vector_results = collection.query(
         query_texts=[substance],
-        n_results=10,
+        n_results=3,
         include=["documents", "metadatas"],
     )
 

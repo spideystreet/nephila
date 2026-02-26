@@ -1,12 +1,10 @@
-from typing import Annotated
+from typing_extensions import NotRequired
 
-from pydantic import BaseModel, Field
-from langgraph.graph.message import add_messages
+from langgraph.graph import MessagesState
 
 
-class AgentState(BaseModel):
-    messages: Annotated[list, add_messages]
-    cis_codes: list[str] = Field(default_factory=list)
-    interactions_found: list[dict] = Field(default_factory=list)
-    interactions_checked: bool = False
-    source_cis: str | None = None
+class AgentState(MessagesState):
+    cis_codes: NotRequired[list[str]]
+    interactions_found: NotRequired[list[dict]]
+    interactions_checked: NotRequired[bool]
+    source_cis: NotRequired[str | None]

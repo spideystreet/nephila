@@ -9,7 +9,7 @@ CRITICAL_LEVELS = frozenset({"contre-indication", "association déconseillée"})
 def warn_node(state: AgentState) -> dict:
     """Prepend critical interaction warnings to the agent's response instead of blocking it."""
     critical = [
-        i for i in state.interactions_found
+        i for i in state.get("interactions_found", [])
         if i.get("niveau_contrainte", "").lower() in CRITICAL_LEVELS
     ]
 
@@ -25,11 +25,9 @@ def warn_node(state: AgentState) -> dict:
         "---\n\n"
     )
 
-    # Find the last non-tool-call AI message (the agent's actual response)
-    last_ai_content = ""
-    for msg in reversed(state.messages):
+    # Replace the last AI message in-place (same id) to avoid duplicate output
+    for msg in reversed(state["messages"]):
         if msg.type == "ai" and not getattr(msg, "tool_calls", None):
-            last_ai_content = msg.content
-            break
+            return {"messages": [AIMessage(id=msg.id, content=warning_prefix + msg.content)]}
 
-    return {"messages": [AIMessage(content=warning_prefix + last_ai_content)]}
+    return {"messages": [AIMessage(content=warning_prefix)]}
