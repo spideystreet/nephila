@@ -21,6 +21,7 @@ def guardrail_node(state: AgentState) -> dict:
         if getattr(msg, "type", None) == "human":
             last_human_idx = i
 
+    seen_pairs: set[frozenset] = set()
     interactions: list[dict] = []
     for msg in messages[last_human_idx:]:
         if not isinstance(msg, ToolMessage):
@@ -28,6 +29,11 @@ def guardrail_node(state: AgentState) -> dict:
         # Match lines like "[Contre-indication] SUBSTANCE_A + SUBSTANCE_B"
         for match in re.finditer(r"\[([^\]]+)\]\s+(.+?)(?:\n|$)", msg.content):
             level, detail = match.group(1), match.group(2)
+            # Deduplicate mirror entries (A+B == B+A)
+            pair = frozenset(p.strip() for p in detail.split("+", 1))
+            if pair in seen_pairs:
+                continue
+            seen_pairs.add(pair)
             interactions.append({"niveau_contrainte": level, "detail": detail})
 
     return {"interactions_found": interactions, "interactions_checked": True}
