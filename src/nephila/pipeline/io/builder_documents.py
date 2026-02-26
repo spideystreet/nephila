@@ -4,6 +4,7 @@ One document per CIS for medicaments, one per interaction row for ANSM.
 """
 
 import hashlib
+from typing import Any
 
 import pandas as pd
 from sqlalchemy import Engine
@@ -11,7 +12,7 @@ from sqlalchemy import Engine
 
 def build_medicament_documents(
     engine: Engine,
-) -> tuple[list[str], list[str], list[dict]]:
+) -> tuple[list[str], list[str], list[dict[str, Any]]]:
     """
     Join silver_bdpm__medicament + silver_bdpm__composition into one document per CIS.
     Returns (ids, documents, metadatas).
@@ -41,14 +42,14 @@ def build_medicament_documents(
 
     ids: list[str] = []
     documents: list[str] = []
-    metadatas: list[dict] = []
+    metadatas: list[dict[str, Any]] = []
 
     for row in df.itertuples():
         ids.append(str(row.cis))
         documents.append(_format_medicament(row))
         metadatas.append(
             {
-                "cis": int(row.cis),
+                "cis": int(str(row.cis)),
                 "etat_commercialisation": row.etat_commercialisation or "",
             }
         )
@@ -58,7 +59,7 @@ def build_medicament_documents(
 
 def build_interaction_documents(
     engine: Engine,
-) -> tuple[list[str], list[str], list[dict]]:
+) -> tuple[list[str], list[str], list[dict[str, Any]]]:
     """
     Build one document per ANSM interaction row.
     Returns (ids, documents, metadatas).
@@ -67,7 +68,7 @@ def build_interaction_documents(
 
     ids: list[str] = []
     documents: list[str] = []
-    metadatas: list[dict] = []
+    metadatas: list[dict[str, Any]] = []
 
     for row in df.itertuples():
         key = f"{row.substance_a}|{row.substance_b}"

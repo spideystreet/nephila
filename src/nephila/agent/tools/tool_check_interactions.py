@@ -30,7 +30,7 @@ def check_interactions(substance_a: str, substance_b: str) -> str:
 
     # Step 1: SQL ILIKE — search for the specific interaction between the two substances
     engine = create_engine(settings.postgres_dsn)
-    seen: set[frozenset] = set()
+    seen: set[frozenset[str]] = set()
     sql_lines: list[str] = []
 
     with engine.connect() as conn:
@@ -69,7 +69,7 @@ def check_interactions(substance_a: str, substance_b: str) -> str:
     # Step 2: vector search — semantic fallback when class names are unknown
     client = chromadb.HttpClient(host=settings.chroma_host, port=settings.chroma_port)
     ef = get_embedding_function(settings.embedding_model)
-    collection = client.get_collection("idx_ansm_interaction_v1", embedding_function=ef)
+    collection = client.get_collection("idx_ansm_interaction_v1", embedding_function=ef)  # type: ignore[arg-type]
 
     vector_results = collection.query(
         query_texts=[f"{substance_a} {substance_b}"],
@@ -78,7 +78,9 @@ def check_interactions(substance_a: str, substance_b: str) -> str:
     )
 
     vector_lines: list[str] = []
-    for doc, meta in zip(vector_results["documents"][0], vector_results["metadatas"][0]):
+    docs = (vector_results["documents"] or [[]])[0]
+    metas = (vector_results["metadatas"] or [[]])[0]
+    for doc, meta in zip(docs, metas):
         pair = frozenset([meta["substance_a"], meta["substance_b"]])
         if pair not in seen:
             seen.add(pair)

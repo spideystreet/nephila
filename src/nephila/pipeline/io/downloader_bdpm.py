@@ -78,7 +78,7 @@ def find_ansm_pdf_url(page_url: str) -> str:
     if not matches:
         raise ValueError(f"No PDF found on ANSM page: {page_url}")
 
-    pdf_url = matches[0]
+    pdf_url = str(matches[0])
     if not pdf_url.startswith("http"):
         pdf_url = "https://ansm.sante.fr" + pdf_url
 

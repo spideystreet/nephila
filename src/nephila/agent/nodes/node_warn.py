@@ -1,13 +1,15 @@
 """Warn node — prepends a structured interaction warning to the agent's response."""
 
+from typing import Any
+
 from langchain_core.messages import AIMessage
 
 from nephila.agent.model_state import AgentState
 
-CRITICAL_LEVELS = frozenset({"contre-indication", "association déconseillée"})
+CRITICAL_LEVELS: frozenset[str] = frozenset({"contre-indication", "association déconseillée"})
 
 
-def warn_node(state: AgentState) -> dict:
+def warn_node(state: AgentState) -> dict[str, Any]:
     """Prepend critical interaction warnings to the agent's response instead of blocking it."""
     critical = [
         i
@@ -28,6 +30,6 @@ def warn_node(state: AgentState) -> dict:
     # Replace the last AI message in-place (same id) to avoid duplicate output
     for msg in reversed(state["messages"]):
         if msg.type == "ai" and not getattr(msg, "tool_calls", None):
-            return {"messages": [AIMessage(id=msg.id, content=warning_prefix + msg.content)]}
+            return {"messages": [AIMessage(id=msg.id, content=warning_prefix + str(msg.content))]}
 
     return {"messages": [AIMessage(content=warning_prefix)]}

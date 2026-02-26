@@ -23,7 +23,7 @@ _BDPM_RAW_SPECS = [
 
 
 @multi_asset(specs=_BDPM_RAW_SPECS)
-def bdpm_to_raw(context: AssetExecutionContext):  # type: ignore[return]
+def bdpm_to_raw(context: AssetExecutionContext) -> None:
     """Load all BDPM .txt files from Bronze into the PostgreSQL raw schema."""
     settings = PipelineSettings()
     engine = create_engine(settings.postgres_dsn)
@@ -48,6 +48,6 @@ def ansm_to_raw(context: AssetExecutionContext) -> None:
 
 
 @dbt_assets(manifest=DBT_MANIFEST, select="silver")
-def silver_dbt_assets(context: AssetExecutionContext, dbt: DbtCliResource) -> None:
+def silver_dbt_assets(context: AssetExecutionContext, dbt: DbtCliResource) -> None:  # type: ignore[misc]
     """Run and test dbt silver models. Each model becomes a Dagster asset; each dbt test becomes an asset check."""  # noqa: E501
-    yield from dbt.cli(["build"], context=context).stream()  # type: ignore[misc]
+    yield from dbt.cli(["build"], context=context).stream()

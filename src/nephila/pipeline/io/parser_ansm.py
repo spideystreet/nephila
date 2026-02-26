@@ -7,12 +7,13 @@ parsed from raw page text using line-by-line heuristics.
 
 import re
 from pathlib import Path
+from typing import Any
 
 import pdfplumber
 from dagster import get_dagster_logger
 
 # Constraint level aliases — map normalized forms to canonical labels
-_CONSTRAINT_PATTERNS: list[tuple[re.Pattern, str]] = [
+_CONSTRAINT_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bcontre[-\s]indication\b", re.IGNORECASE), "Contre-indication"),
     (re.compile(r"\bCI\b"), "Contre-indication"),
     (
@@ -48,14 +49,14 @@ def _is_substance_a(line: str) -> bool:
     return bool(_SUBSTANCE_A_RE.match(line))
 
 
-def parse_thesaurus_pdf(pdf_path: Path) -> list[dict]:
+def parse_thesaurus_pdf(pdf_path: Path) -> list[dict[str, Any]]:
     """
     Parse the ANSM Thésaurus PDF and return a list of interaction records.
     Each record contains: substance_a, substance_b, niveau_contrainte,
     nature_risque, conduite_a_tenir (always None — not extractable from this layout).
     """
     log = get_dagster_logger()
-    records: list[dict] = []
+    records: list[dict[str, Any]] = []
     current_substance_a: str = "UNKNOWN"
     current_substance_b: str | None = None
     description_lines: list[str] = []

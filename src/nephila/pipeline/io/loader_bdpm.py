@@ -1,6 +1,7 @@
 """Bulk loader: reads Bronze .txt files and loads them into the PostgreSQL raw schema."""
 
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 from dagster import get_dagster_logger
@@ -112,7 +113,7 @@ def load_bdpm_files_to_raw(bronze_dir: Path, engine: Engine) -> dict[str, int]:
     return results
 
 
-def load_interactions_to_raw(records: list[dict], engine: Engine) -> int:
+def load_interactions_to_raw(records: list[dict[str, Any]], engine: Engine) -> int:
     """Load parsed ANSM interaction records into raw.ansm_interaction."""
     log = get_dagster_logger()
 

@@ -17,17 +17,20 @@ def search_drug(query: str) -> str:
     client = chromadb.HttpClient(host=settings.chroma_host, port=settings.chroma_port)
     ef = get_embedding_function(settings.embedding_model)
 
-    collection = client.get_collection("idx_bdpm_medicament_v1", embedding_function=ef)
+    collection = client.get_collection("idx_bdpm_medicament_v1", embedding_function=ef)  # type: ignore[arg-type]
     results = collection.query(
         query_texts=[query],
         n_results=5,
         include=["documents", "metadatas"],
     )
 
-    if not results["documents"][0]:
+    docs = (results["documents"] or [[]])[0]
+    metas = (results["metadatas"] or [[]])[0]
+
+    if not docs:
         return f"No drugs found for query: {query!r}"
 
     lines = []
-    for doc, meta in zip(results["documents"][0], results["metadatas"][0]):
+    for doc, meta in zip(docs, metas):
         lines.append(f"CIS {meta['cis']}: {doc}")
     return "\n\n".join(lines)

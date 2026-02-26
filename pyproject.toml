@@ -38,6 +38,7 @@ dev = [
     "langgraph-cli[inmem]>=0.1",
     "sqlfluff>=3.0",
     "sqlfluff-templater-dbt>=3.0",
+    "pandas-stubs>=2.2",
 ]
 
 [build-system]
@@ -57,6 +58,21 @@ select = ["E", "F", "I", "UP"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = [
+    "chromadb.*",
+    "dagster.*",
+    "dagster_postgres.*",
+    "dagster_dbt.*",
+    "pdfplumber.*",
+    "sentence_transformers.*",
+    "langsmith.*",
+    "forbiddenfruit.*",
+]
+ignore_missing_imports = true
+ignore_errors = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
