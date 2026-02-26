@@ -19,6 +19,7 @@ def run(query: str) -> None:
 
     for event in graph.stream(
         {"messages": [HumanMessage(content=query)]},
+        config={"configurable": {"thread_id": "cli"}},
         stream_mode="updates",
     ):
         for node, data in event.items():

@@ -4,6 +4,7 @@ Architecture: agent (LLM + tools) → guardrail → response|warn
 """
 from langchain_core.messages import SystemMessage
 from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 
@@ -83,7 +84,7 @@ def build_agent() -> StateGraph:
     builder.add_edge("response", END)
     builder.add_edge("warn", END)
 
-    return builder.compile()
+    return builder.compile(checkpointer=MemorySaver())
 
 
 graph = build_agent()
