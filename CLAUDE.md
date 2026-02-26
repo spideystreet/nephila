@@ -21,6 +21,9 @@ uv run dagster asset materialize --select bronze
 uv run dbt run --project-dir dbt --profiles-dir dbt
 uv run dbt test --project-dir dbt --profiles-dir dbt
 
+# LangGraph Studio (conversational UI)
+uv run langgraph dev               # UI at smith.langchain.com/studio → connect localhost:2024
+
 # Quality
 uv run ruff check src/
 uv run ruff format src/
