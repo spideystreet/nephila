@@ -15,7 +15,7 @@ def guardrail_node(state: AgentState) -> dict:
     """Extract interaction records from tool messages and flag critical ones."""
     interactions: list[dict] = []
 
-    for msg in state.messages:
+    for msg in state["messages"]:
         if not isinstance(msg, ToolMessage):
             continue
         # Match lines like "[Contre-indication] SUBSTANCE_A + SUBSTANCE_B"
