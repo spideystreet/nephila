@@ -8,24 +8,27 @@ from nephila.pipeline.io.embedder_local import get_embedding_function
 
 
 @tool
-def check_interactions(substance: str) -> str:
+def check_interactions(substance_a: str, substance_b: str) -> str:
     """
-    Check ANSM Thésaurus for drug interactions involving a substance or drug class.
+    Check ANSM Thésaurus for the interaction between two substances or drug classes.
 
     The ANSM Thésaurus indexes interactions by drug CLASS names, not individual substance names.
     Examples: 'ANTIVITAMINES K' for warfarine/acenocoumarol, 'ANTIAGREGANTS PLAQUETTAIRES'
-    for aspirin, 'INHIBITEURS DE LA MAO' for MAOIs, 'FLUOROQUINOLONES' for ciprofloxacin.
-    Always try the ANSM pharmacological class name when known — it yields exact matches.
+    for aspirin, 'INHIBITEURS DE LA MAO' for MAOIs, 'FLUOROQUINOLONES' for ciprofloxacin,
+    'ANTIFONGIQUES AZOLÉS' for fluconazole/itraconazole, 'STATINES' for statins,
+    'INHIBITEURS DE RECAPTURE DE LA SEROTONINE' for SSRIs.
+    Always use the ANSM pharmacological class name when known — it yields exact matches.
+    When the class is unknown, pass the individual substance name as fallback.
 
-    Returns interactions with their constraint level.
+    Returns the interaction between substance_a and substance_b with its constraint level.
     ALWAYS call this before any drug recommendation.
     Constraint levels: Contre-indication > Association déconseillée > Précaution d'emploi > A prendre en compte
     """
     settings = PipelineSettings()
 
-    # Step 1: SQL ILIKE — exact/partial match on ANSM substance group names
+    # Step 1: SQL ILIKE — search for the specific interaction between the two substances
     engine = create_engine(settings.postgres_dsn)
-    seen: set[str] = set()
+    seen: set[frozenset] = set()
     sql_lines: list[str] = []
 
     with engine.connect() as conn:
@@ -33,7 +36,8 @@ def check_interactions(substance: str) -> str:
             text("""
                 SELECT substance_a, substance_b, niveau_contrainte, nature_risque, conduite_a_tenir
                 FROM silver.silver_ansm__interaction
-                WHERE substance_a ILIKE :pattern OR substance_b ILIKE :pattern
+                WHERE (substance_a ILIKE :pattern_a AND substance_b ILIKE :pattern_b)
+                   OR (substance_a ILIKE :pattern_b AND substance_b ILIKE :pattern_a)
                 ORDER BY
                     CASE niveau_contrainte
                         WHEN 'Contre-indication' THEN 1
@@ -41,15 +45,15 @@ def check_interactions(substance: str) -> str:
                         WHEN 'Précaution d''emploi' THEN 3
                         ELSE 4
                     END
-                LIMIT 20
+                LIMIT 10
             """),
-            {"pattern": f"%{substance}%"},
+            {"pattern_a": f"%{substance_a}%", "pattern_b": f"%{substance_b}%"},
         ).fetchall()
 
     for row in rows:
-        key = f"{row[0]}|{row[1]}"
-        if key not in seen:
-            seen.add(key)
+        pair = frozenset([row[0], row[1]])
+        if pair not in seen:
+            seen.add(pair)
             parts = [
                 f"Interaction: {row[0]} + {row[1]}",
                 f"Niveau de contrainte: {row[2]}",
@@ -60,28 +64,31 @@ def check_interactions(substance: str) -> str:
                 parts.append(f"Conduite à tenir: {row[4]}")
             sql_lines.append(f"[{row[2]}] {row[0]} + {row[1]}\n{'. '.join(parts)}")
 
-    # Step 2: vector search — semantic fallback for class names the LLM didn't resolve
+    # Step 2: vector search — semantic fallback when class names are unknown
     client = chromadb.HttpClient(host=settings.chroma_host, port=settings.chroma_port)
     ef = get_embedding_function(settings.embedding_model)
     collection = client.get_collection("idx_ansm_interaction_v1", embedding_function=ef)
 
     vector_results = collection.query(
-        query_texts=[substance],
+        query_texts=[f"{substance_a} {substance_b}"],
         n_results=3,
         include=["documents", "metadatas"],
     )
 
     vector_lines: list[str] = []
     for doc, meta in zip(vector_results["documents"][0], vector_results["metadatas"][0]):
-        key = f"{meta['substance_a']}|{meta['substance_b']}"
-        if key not in seen:
-            seen.add(key)
+        pair = frozenset([meta["substance_a"], meta["substance_b"]])
+        if pair not in seen:
+            seen.add(pair)
             vector_lines.append(
                 f"[{meta['niveau_contrainte']}] {meta['substance_a']} + {meta['substance_b']}\n{doc}"
             )
 
     all_results = sql_lines + vector_lines
     if not all_results:
-        return f"No interactions found for '{substance}' in ANSM Thésaurus."
+        return (
+            f"No interaction found between '{substance_a}' and '{substance_b}' in ANSM Thésaurus. "
+            "Try using the ANSM pharmacological class names (e.g. 'ANTIVITAMINES K', 'STATINES')."
+        )
 
     return "\n\n".join(all_results)
