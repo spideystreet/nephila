@@ -60,8 +60,8 @@ uv run langgraph dev
 ```
 
 Requires in `.env`:
-- `LANGCHAIN_API_KEY` — LangSmith API key
-- `LANGCHAIN_TRACING_V2=true`
-- `LANGCHAIN_PROJECT=nephila`
+- `LANGSMITH_API_KEY` — LangSmith API key
+- `LANGSMITH_TRACING=true`
+- `LANGSMITH_PROJECT=nephila`
 
 Graph entrypoint declared in `langgraph.json` at project root.
