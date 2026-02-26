@@ -5,7 +5,7 @@ Metadata filtering by CIS (drug specialty) and CIP13 (presentation/box).
 """
 import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
-from dagster import AssetExecutionContext, asset
+from dagster import AssetExecutionContext, AssetKey, asset
 from sqlalchemy import create_engine
 
 from nephila.pipeline.config_pipeline import PipelineSettings
@@ -18,7 +18,14 @@ from nephila.pipeline.io.embedder_local import get_embedding_function
 BATCH_SIZE = 100
 
 
-@asset(group_name="gold", deps=["silver_dbt"])
+@asset(
+    group_name="gold",
+    deps=[
+        AssetKey(["silver", "silver_bdpm__medicament"]),
+        AssetKey(["silver", "silver_bdpm__composition"]),
+        AssetKey(["silver", "silver_ansm__interaction"]),
+    ],
+)
 def gold_embeddings(context: AssetExecutionContext) -> None:
     """
     Build and upsert ChromaDB collections from Silver tables.

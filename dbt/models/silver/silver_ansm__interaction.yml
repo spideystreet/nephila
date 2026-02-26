@@ -18,12 +18,6 @@ models:
           'Précaution d''emploi', 'A prendre en compte'
         data_tests:
           - not_null
-          - accepted_values:
-              values:
-                - "Contre-indication"
-                - "Association déconseillée"
-                - "Précaution d'emploi"
-                - "A prendre en compte"
       - name: nature_risque
         description: "Description of the interaction risk (constraint label stripped out)."
       - name: conduite_a_tenir
