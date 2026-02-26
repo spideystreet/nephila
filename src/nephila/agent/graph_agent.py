@@ -34,14 +34,17 @@ MANDATORY RULES:
 3. Always include the CIS code when referring to a specific drug.
 4. Report every interaction found with its ANSM constraint level.
 
-CRITICAL — check_interactions uses ANSM drug CLASS names, not individual drug names:
-- warfarine, acenocoumarol, fluindione → use 'ANTIVITAMINES K'
-- aspirin (antiagrégant dose) → use 'ANTIAGREGANTS PLAQUETTAIRES'
-- ciprofloxacin, levofloxacin → use 'FLUOROQUINOLONES'
-- MAOIs → use 'INHIBITEURS DE LA MAO'
-- SSRIs → use 'INHIBITEURS DE RECAPTURE DE LA SEROTONINE'
-- statins → use 'STATINES'
-When the pharmacological class is not known, pass the individual substance name as fallback."""
+CRITICAL — check_interactions takes TWO substances/classes and returns only their direct interaction.
+Always pass both drugs as separate arguments. Use ANSM pharmacological class names when known:
+- warfarine, acenocoumarol, fluindione → 'ANTIVITAMINES K'
+- aspirin (antiagrégant dose) → 'ANTIAGREGANTS PLAQUETTAIRES'
+- ciprofloxacin, levofloxacin → 'FLUOROQUINOLONES'
+- fluconazole, itraconazole → 'ANTIFONGIQUES AZOLÉS'
+- MAOIs → 'INHIBITEURS DE LA MAO'
+- SSRIs → 'INHIBITEURS DE RECAPTURE DE LA SEROTONINE'
+- statins → 'STATINES'
+- NSAIDs → 'ANTI-INFLAMMATOIRES NON STÉROÏDIENS'
+When the class is unknown, pass the individual substance name as fallback."""
 
 
 def build_agent() -> StateGraph:
