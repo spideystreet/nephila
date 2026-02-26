@@ -2,6 +2,7 @@
 Mandatory guardrail node — runs before every final response.
 Parses interaction tool results and flags critical constraint levels.
 """
+
 import re
 
 from langchain_core.messages import ToolMessage

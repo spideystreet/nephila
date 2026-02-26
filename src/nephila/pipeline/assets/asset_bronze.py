@@ -2,6 +2,7 @@
 Bronze layer — Raw ingestion of official data sources.
 No transformation: files are stored as-is.
 """
+
 from pathlib import Path
 
 from dagster import AssetExecutionContext, asset

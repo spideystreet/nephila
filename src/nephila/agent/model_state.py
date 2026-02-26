@@ -1,4 +1,4 @@
-from typing_extensions import NotRequired
+from typing import NotRequired
 
 from langgraph.graph import MessagesState
 

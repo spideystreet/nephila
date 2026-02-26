@@ -5,6 +5,7 @@ Streams LangGraph events to stdout for local observability.
 Usage:
     uv run python -m nephila.agent.cli_agent "Quelles interactions avec l'amiodarone ?"
 """
+
 import sys
 
 from langchain_core.messages import HumanMessage
@@ -13,9 +14,9 @@ from nephila.agent.graph_agent import graph
 
 
 def run(query: str) -> None:
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Query: {query}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     for event in graph.stream(
         {"messages": [HumanMessage(content=query)]},
@@ -42,5 +43,6 @@ def run(query: str) -> None:
 
 
 if __name__ == "__main__":
-    query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "Quels médicaments contiennent du paracétamol ?"
+    default = "Quels médicaments contiennent du paracétamol ?"
+    query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else default
     run(query)

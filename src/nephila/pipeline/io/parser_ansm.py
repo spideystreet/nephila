@@ -4,6 +4,7 @@ Extracts drug interaction records from the official ANSM PDF publication.
 The PDF uses a text-column layout (not structured tables): interactions are
 parsed from raw page text using line-by-line heuristics.
 """
+
 import re
 from pathlib import Path
 
@@ -14,7 +15,10 @@ from dagster import get_dagster_logger
 _CONSTRAINT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\bcontre[-\s]indication\b", re.IGNORECASE), "Contre-indication"),
     (re.compile(r"\bCI\b"), "Contre-indication"),
-    (re.compile(r"\bassociation\s+d[ée]conseill[ée]e\b", re.IGNORECASE), "Association déconseillée"),
+    (
+        re.compile(r"\bassociation\s+d[ée]conseill[ée]e\b", re.IGNORECASE),
+        "Association déconseillée",
+    ),  # noqa: E501
     (re.compile(r"\bASDEC\b"), "Association déconseillée"),
     (re.compile(r"\bpr[ée]caution\s+d.emploi\b", re.IGNORECASE), "Précaution d'emploi"),
     (re.compile(r"\bPE\b"), "Précaution d'emploi"),

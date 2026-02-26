@@ -1,4 +1,5 @@
 """Response node — extracts CIS traceability metadata from the conversation."""
+
 import re
 
 from langchain_core.messages import ToolMessage

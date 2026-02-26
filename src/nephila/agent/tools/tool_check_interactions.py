@@ -1,4 +1,5 @@
 """ANSM Thésaurus interaction lookup — dual SQL ILIKE + ChromaDB vector search."""
+
 import chromadb
 from langchain_core.tools import tool
 from sqlalchemy import create_engine, text
@@ -22,7 +23,8 @@ def check_interactions(substance_a: str, substance_b: str) -> str:
 
     Returns the interaction between substance_a and substance_b with its constraint level.
     ALWAYS call this before any drug recommendation.
-    Constraint levels: Contre-indication > Association déconseillée > Précaution d'emploi > A prendre en compte
+    Constraint levels: Contre-indication > Association déconseillée
+    > Précaution d'emploi > A prendre en compte
     """
     settings = PipelineSettings()
 
@@ -81,7 +83,7 @@ def check_interactions(substance_a: str, substance_b: str) -> str:
         if pair not in seen:
             seen.add(pair)
             vector_lines.append(
-                f"[{meta['niveau_contrainte']}] {meta['substance_a']} + {meta['substance_b']}\n{doc}"
+                f"[{meta['niveau_contrainte']}] {meta['substance_a']} + {meta['substance_b']}\n{doc}"  # noqa: E501
             )
 
     all_results = sql_lines + vector_lines

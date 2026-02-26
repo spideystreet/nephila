@@ -1,4 +1,5 @@
 """Semantic drug search in ChromaDB idx_bdpm_medicament_v1."""
+
 import chromadb
 from langchain_core.tools import tool
 

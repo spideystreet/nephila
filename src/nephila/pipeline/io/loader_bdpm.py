@@ -1,4 +1,5 @@
 """Bulk loader: reads Bronze .txt files and loads them into the PostgreSQL raw schema."""
+
 from pathlib import Path
 
 import pandas as pd
@@ -8,28 +9,58 @@ from sqlalchemy import Engine, text
 # Column definitions per BDPM source file (ISO-8859-1, tab-separated)
 BDPM_FILE_COLUMNS: dict[str, list[str]] = {
     "CIS_bdpm.txt": [
-        "cis", "denomination", "forme_pharma", "voies_admin",
-        "statut_amm", "type_amm", "etat_commercialisation", "date_amm",
-        "statut_bdm", "num_autorisation_eu", "titulaire", "surveillance_renforcee",
+        "cis",
+        "denomination",
+        "forme_pharma",
+        "voies_admin",
+        "statut_amm",
+        "type_amm",
+        "etat_commercialisation",
+        "date_amm",
+        "statut_bdm",
+        "num_autorisation_eu",
+        "titulaire",
+        "surveillance_renforcee",
     ],
     "CIS_CIP_bdpm.txt": [
-        "cis", "cip7", "libelle_presentation", "statut_admin",
-        "etat_commercialisation", "date_declaration_commercialisation",
-        "cip13", "agrement_collectivites", "taux_remboursement",
-        "prix_medicament", "indicateurs_remboursement",
+        "cis",
+        "cip7",
+        "libelle_presentation",
+        "statut_admin",
+        "etat_commercialisation",
+        "date_declaration_commercialisation",
+        "cip13",
+        "agrement_collectivites",
+        "taux_remboursement",
+        "prix_medicament",
+        "indicateurs_remboursement",
     ],
     "CIS_COMPO_bdpm.txt": [
-        "cis", "designation_element", "code_substance", "denomination_substance",
-        "dosage", "reference_dosage", "nature_composant", "num_liaison_sa_ft",
+        "cis",
+        "designation_element",
+        "code_substance",
+        "denomination_substance",
+        "dosage",
+        "reference_dosage",
+        "nature_composant",
+        "num_liaison_sa_ft",
     ],
     "CIS_GENER_bdpm.txt": [
-        "id_groupe", "libelle_groupe", "cis", "type_generique", "num_tri",
+        "id_groupe",
+        "libelle_groupe",
+        "cis",
+        "type_generique",
+        "num_tri",
     ],
     "CIS_CPD_bdpm.txt": [
-        "cis", "condition_prescription_delivrance",
+        "cis",
+        "condition_prescription_delivrance",
     ],
     "CIS_InfoImportantes.txt": [
-        "cis", "date_debut", "date_fin", "texte_info_importante",
+        "cis",
+        "date_debut",
+        "date_fin",
+        "texte_info_importante",
     ],
 }
 

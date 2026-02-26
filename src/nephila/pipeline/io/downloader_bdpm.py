@@ -2,6 +2,7 @@
 Download utilities for the Bronze layer.
 Handles BDPM files (.txt, ISO-8859-1) and the ANSM Thésaurus (PDF).
 """
+
 import re
 from pathlib import Path
 
@@ -22,9 +23,7 @@ BDPM_FILES_DIRECT = [
     "CIS_InfoImportantes.txt",
 ]
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; Nephila/1.0; HealthTech Research)"
-}
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; Nephila/1.0; HealthTech Research)"}
 
 
 def download_file(url: str, dest: Path, timeout: int = 120) -> Path:

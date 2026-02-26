@@ -3,6 +3,7 @@ Gold layer — Vector embeddings stored in ChromaDB.
 Index naming: idx_<source>_<content>_<model_version>
 Metadata filtering by CIS (drug specialty) and CIP13 (presentation/box).
 """
+
 import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 from dagster import AssetExecutionContext, AssetKey, asset

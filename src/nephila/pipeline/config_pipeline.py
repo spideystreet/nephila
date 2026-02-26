@@ -7,7 +7,6 @@ load_dotenv()
 
 
 class PipelineSettings(BaseSettings):
-
     # PostgreSQL
     postgres_host: str
     postgres_port: int
@@ -20,9 +19,9 @@ class PipelineSettings(BaseSettings):
     chroma_port: int
 
     # OpenRouter (LLM only — embeddings are local)
-    openrouter_api_key: str          # ${OPENROUTER_API_KEY}
-    openrouter_base_url: str         # ${OPENROUTER_BASE_URL}
-    openrouter_model: str            # ${OPENROUTER_MODEL}
+    openrouter_api_key: str  # ${OPENROUTER_API_KEY}
+    openrouter_base_url: str  # ${OPENROUTER_BASE_URL}
+    openrouter_model: str  # ${OPENROUTER_MODEL}
 
     # Embeddings (local HuggingFace model via sentence-transformers)
     embedding_model: str = "intfloat/multilingual-e5-base"  # ${EMBEDDING_MODEL}

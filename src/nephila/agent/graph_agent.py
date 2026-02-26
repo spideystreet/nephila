@@ -2,6 +2,7 @@
 Nephila ReAct agent — LangGraph graph definition.
 Architecture: agent (LLM + tools) → guardrail → response|warn
 """
+
 from langchain_core.messages import SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
@@ -34,7 +35,8 @@ MANDATORY RULES:
 3. Always include the CIS code when referring to a specific drug.
 4. Report every interaction found with its ANSM constraint level.
 
-CRITICAL — check_interactions takes TWO substances/classes and returns only their direct interaction.
+CRITICAL — check_interactions takes TWO substances/classes and returns only their direct
+interaction.
 Always pass both drugs as separate arguments. Use ANSM pharmacological class names when known:
 - warfarine, acenocoumarol, fluindione → 'ANTIVITAMINES K'
 - aspirin (antiagrégant dose) → 'ANTIAGREGANTS PLAQUETTAIRES'

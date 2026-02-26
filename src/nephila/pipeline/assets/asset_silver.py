@@ -1,4 +1,5 @@
 """Silver layer — Load Bronze files into PostgreSQL raw schema, then run dbt transformations."""
+
 from pathlib import Path
 
 from dagster import AssetExecutionContext, AssetKey, AssetSpec, asset, multi_asset
@@ -48,5 +49,5 @@ def ansm_to_raw(context: AssetExecutionContext) -> None:
 
 @dbt_assets(manifest=DBT_MANIFEST, select="silver")
 def silver_dbt_assets(context: AssetExecutionContext, dbt: DbtCliResource) -> None:
-    """Run and test dbt silver models. Each model becomes a Dagster asset; each dbt test becomes an asset check."""
+    """Run and test dbt silver models. Each model becomes a Dagster asset; each dbt test becomes an asset check."""  # noqa: E501
     yield from dbt.cli(["build"], context=context).stream()  # type: ignore[misc]

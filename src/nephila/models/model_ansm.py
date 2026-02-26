@@ -1,4 +1,5 @@
 """Pydantic model for ANSM Thésaurus drug interaction records."""
+
 from pydantic import BaseModel, ConfigDict
 
 CONSTRAINT_LEVELS = frozenset(
