@@ -13,9 +13,16 @@ CRITICAL_LEVELS = frozenset({"contre-indication", "association déconseillée"})
 
 def guardrail_node(state: AgentState) -> dict:
     """Extract interaction records from tool messages and flag critical ones."""
-    interactions: list[dict] = []
+    messages = state["messages"]
 
-    for msg in state["messages"]:
+    # Only inspect tool messages from the current turn (after the last HumanMessage)
+    last_human_idx = 0
+    for i, msg in enumerate(messages):
+        if getattr(msg, "type", None) == "human":
+            last_human_idx = i
+
+    interactions: list[dict] = []
+    for msg in messages[last_human_idx:]:
         if not isinstance(msg, ToolMessage):
             continue
         # Match lines like "[Contre-indication] SUBSTANCE_A + SUBSTANCE_B"
