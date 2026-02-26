@@ -38,6 +38,9 @@ def _is_substance_a(line: str) -> bool:
     """True if the line looks like a substance A header (all-caps, not starting with +)."""
     if line.startswith("+") or line.startswith("Voir") or line.startswith("voir"):
         return False
+    # Exclude page numbers (purely numeric lines like "2", "100", "183")
+    if line.strip().isdigit():
+        return False
     return bool(_SUBSTANCE_A_RE.match(line))
 
 
