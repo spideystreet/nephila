@@ -46,6 +46,9 @@ def _is_substance_a(line: str) -> bool:
     # Exclude page numbers (purely numeric lines like "2", "100", "183")
     if line.strip().isdigit():
         return False
+    # Require at least 2 uppercase letters — excludes section artifacts like "165." or "I."
+    if sum(1 for c in line if c.isupper()) < 2:
+        return False
     return bool(_SUBSTANCE_A_RE.match(line))
 
 

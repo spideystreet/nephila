@@ -9,6 +9,7 @@ from dagster import AssetExecutionContext, asset
 
 from nephila.pipeline.config_pipeline import PipelineSettings
 from nephila.pipeline.io.downloader_bdpm import download_bdpm, download_file, find_ansm_pdf_url
+from nephila.pipeline.io.downloader_open_medic import download_open_medic_cip13
 
 
 @asset(group_name="bronze")
@@ -46,6 +47,29 @@ def ansm_thesaurus_raw(context: AssetExecutionContext) -> None:
     context.add_output_metadata(
         {
             "source_url": pdf_url,
+            "dest": str(path),
+            "size_kb": round(path.stat().st_size / 1024, 1),
+        }
+    )
+
+
+@asset(group_name="bronze")
+def open_medic_raw(context: AssetExecutionContext) -> None:
+    """
+    Download the Open Medic CIP13 annual CSV from ameli.fr (CNAM).
+    Data: drug reimbursements aggregated by CIP13 code with ATC classification.
+    Output: data/bronze/open_medic/open_medic_cip13_{year}.csv
+    """
+    settings = PipelineSettings()
+    path = download_open_medic_cip13(
+        settings.open_medic_base_url,
+        settings.open_medic_year,
+        settings.bronze_dir,
+    )
+
+    context.add_output_metadata(
+        {
+            "year": settings.open_medic_year,
             "dest": str(path),
             "size_kb": round(path.stat().st_size / 1024, 1),
         }

@@ -34,6 +34,8 @@ class PipelineSettings(BaseSettings):
     ansm_thesaurus_page_url: str = (
         "https://ansm.sante.fr/documents/reference/thesaurus-des-interactions-medicamenteuses-1"
     )
+    open_medic_base_url: str = "https://open-data-assurance-maladie.ameli.fr/medicaments"
+    open_medic_year: int = 2024
 
     @property
     def postgres_dsn(self) -> str:
