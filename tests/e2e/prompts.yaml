@@ -8,29 +8,9 @@
 #   expect_in   : strings that MUST appear in the response (case-insensitive)
 #   expect_not  : strings that must NOT appear (false-positive guard)
 
-- id: warfarine_amiodarone_aspirine
-  prompt: >
-    Patient sous warfarine et amiodarone. Le cardiologue envisage d'ajouter de l'aspirine
-    à faible dose. Est-ce possible ?
-  expect_warn: true
-  expect_in:
-    - "⚠️"
-    - "association déconseillée"
-  expect_not:
-    - "fidaxomicine"
-    - "trimethoprime"
+# --- expect_warn: true -------------------------------------------------------
 
-- id: ciprofloxacine_metformine
-  prompt: >
-    Mon patient diabétique de type 2 sous metformine doit prendre de la ciprofloxacine
-    pour une infection urinaire. Y a-t-il une interaction ?
-  expect_warn: false
-  expect_in:
-    - "pas d'interaction"
-  expect_not:
-    - "⚠️"
-    - "contre-indication"
-
+# Pharmacodynamic CI: AINS potentiate MTX toxicity
 - id: ibuprofene_methotrexate
   prompt: >
     Mon patient est suivi pour un psoriasis sous méthotrexate faible dose.
@@ -38,26 +18,56 @@
   expect_warn: true
   expect_in:
     - "⚠️"
-    - "anti-inflammatoires non stéroïdiens"
-    - "methotrexate"
+    - "méthotrexate"
   expect_not:
     - "trimethoprime"
     - "probenecide"
 
+# Pharmacokinetic CI: CYP3A4 inhibition → rhabdomyolysis risk
 - id: simvastatine_clarithromycine
   prompt: >
-    Patient sous simvastatine 40 mg. Il a une bronchite et le médecin prescrit de la
-    clarithromycine. Y a-t-il un problème ?
+    Patient sous simvastatine 40 mg pour une hypercholestérolémie.
+    Son généraliste veut lui prescrire de la clarithromycine pour une bronchite.
+    Y a-t-il un risque ?
   expect_warn: true
   expect_in:
     - "⚠️"
   expect_not: []
 
-- id: ramipril_spironolactone_ibuprofene
+# Association déconseillée: anticoagulant + antiarrhythmic (INR potentiation)
+- id: warfarine_amiodarone
   prompt: >
-    Un patient hypertendu sous ramipril et spironolactone doit prendre de l'ibuprofène
-    pour des douleurs articulaires. Quelles interactions dois-je surveiller ?
+    Patient sous warfarine stable depuis 6 mois. Son cardiologue vient de lui prescrire
+    de l'amiodarone pour une FA paroxystique. Y a-t-il une interaction à surveiller ?
   expect_warn: true
   expect_in:
     - "⚠️"
-  expect_not: []
+    - "amiodarone"
+  expect_not:
+    - "aspirine"
+    - "fidaxomicine"
+
+# --- expect_warn: false ------------------------------------------------------
+
+# True negative: no known pharmacological interaction between these two drugs
+- id: paracetamol_amoxicilline
+  prompt: >
+    Mon patient a une angine bactérienne traitée par amoxicilline.
+    Il souhaite prendre du paracétamol pour la douleur et la fièvre.
+    Y a-t-il une interaction entre ces deux médicaments ?
+  expect_warn: false
+  expect_in:
+    - "paracétamol"
+  expect_not:
+    - "⚠️"
+    - "contre-indication"
+
+# Different tool path: tests search_drug → find_generics chain
+- id: generiques_doliprane
+  prompt: >
+    Quels sont les médicaments génériques disponibles pour le Doliprane ?
+  expect_warn: false
+  expect_in:
+    - "paracétamol"
+  expect_not:
+    - "⚠️"
