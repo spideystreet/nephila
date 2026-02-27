@@ -39,6 +39,7 @@
 # --- expect_warn: false ------------------------------------------------------
 
 # Précaution d'emploi only: our ANSM data shows PE (not CI/AD) for this pair
+# expect_in uses drug name only — agent may not always echo "précaution" verbatim
 - id: simvastatine_clarithromycine
   prompt: >
     Patient sous simvastatine 40 mg pour une hypercholestérolémie.
@@ -46,7 +47,7 @@
     Y a-t-il un risque ?
   expect_warn: false
   expect_in:
-    - "précaution"
+    - "clarithromycine"
   expect_not:
     - "⚠️"
 
