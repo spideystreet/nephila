@@ -71,8 +71,15 @@ def _upsert_collection(
     builder: object,
     context: AssetExecutionContext,
 ) -> int:
-    """Build documents and upsert them into a ChromaDB collection in batches."""
-    collection = client.get_or_create_collection(name=name, embedding_function=ef)  # type: ignore[arg-type]
+    """Recreate a ChromaDB collection from scratch and populate it in batches.
+
+    delete_collection + create_collection ensures stale entries are removed.
+    """
+    try:
+        client.delete_collection(name=name)
+    except Exception:
+        pass  # Collection may not exist yet on first run
+    collection = client.create_collection(name=name, embedding_function=ef)  # type: ignore[arg-type]
 
     ids, documents, metadatas = builder()  # type: ignore[operator]
     total = len(ids)

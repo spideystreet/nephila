@@ -11,10 +11,16 @@ TYPE_LABELS = {"0": "Princeps", "1": "Générique", "2": "Générique par assimi
 @tool
 def find_generics(cis: str) -> str:
     """
-    Find generic equivalents for a drug identified by its CIS code.
+    Find generic equivalents for a drug identified by its CIS code (numeric string).
     Returns all drugs in the same BDPM generic group.
     type_generique: 0=princeps, 1=générique, 2=générique par assimilation, 4=CPP
+
+    IMPORTANT: cis must be a numeric CIS code (e.g. '60001750'), not a drug name.
+    Always call search_drug first to obtain the CIS code.
     """
+    if not cis.strip().isdigit():
+        return f"Error: '{cis}' is not a valid CIS code. Call search_drug first."
+
     settings = PipelineSettings()
     engine = create_engine(settings.postgres_dsn)
 

@@ -45,18 +45,10 @@ RESPONSE FORMAT — STRICT:
 - Never ask follow-up questions.
 - State the interaction level, the risk, and the key precaution. That's it.
 
-CRITICAL — check_interactions takes TWO substances/classes and returns only their direct
-interaction.
-Always pass both drugs as separate arguments. Use ANSM pharmacological class names when known:
-- warfarine, acenocoumarol, fluindione → 'ANTIVITAMINES K'
-- aspirin (antiagrégant dose) → 'ANTIAGREGANTS PLAQUETTAIRES'
-- ciprofloxacin, levofloxacin → 'FLUOROQUINOLONES'
-- fluconazole, itraconazole → 'ANTIFONGIQUES AZOLÉS'
-- MAOIs → 'INHIBITEURS DE LA MAO'
-- SSRIs → 'INHIBITEURS DE RECAPTURE DE LA SEROTONINE'
-- statins → 'STATINES'
-- NSAIDs → 'ANTI-INFLAMMATOIRES NON STÉROÏDIENS'
-When the class is unknown, pass the individual substance name as fallback."""
+CRITICAL — check_interactions rules:
+1. For N drugs mentioned, you MUST call check_interactions for EVERY pair.
+   Example with 3 drugs A, B, C: call (A,B), (A,C), (B,C). Never skip a pair.
+2. Pass individual drug names as-is — the tool auto-discovers the correct ANSM class."""
 
 
 def build_agent() -> CompiledStateGraph:  # type: ignore[type-arg]
@@ -68,7 +60,10 @@ def build_agent() -> CompiledStateGraph:  # type: ignore[type-arg]
         model=settings.openrouter_model,
         default_headers={"X-Title": "Nephila"},
     )
-    llm_with_tools = llm.bind_tools(TOOLS)
+    # parallel_tool_calls=False: some providers (e.g. Mistral via OpenRouter) raise
+    # "Not the same number of function calls and responses" when the model batches
+    # multiple tool calls in a single message. Force sequential calls.
+    llm_with_tools = llm.bind_tools(TOOLS, parallel_tool_calls=False)
 
     def agent_node(state: AgentState) -> dict[str, Any]:
         messages = list(state["messages"])

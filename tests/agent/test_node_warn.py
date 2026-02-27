@@ -17,7 +17,7 @@ PE_INTERACTION = {"niveau_contrainte": "Précaution d'emploi", "detail": "A + B"
 
 
 class TestWarnNode:
-    def test_warning_prefix_prepended_to_last_ai_message(self):
+    def test_warning_notice_appended_to_last_ai_message(self):
         ai_msg = AIMessage(id="msg-1", content="Voici l'analyse.")
         state = _state(
             messages=[HumanMessage(content="?"), ai_msg],
@@ -25,8 +25,9 @@ class TestWarnNode:
         )
         result = warn_node(state)
         new_msg = result["messages"][0]
-        assert new_msg.content.startswith("⚠️")
-        assert "Voici l'analyse." in new_msg.content
+        assert new_msg.content.startswith("Voici l'analyse.")
+        assert "⚠️" in new_msg.content
+        assert "AMIODARONE + WARFARINE" in new_msg.content
 
     def test_original_message_id_preserved(self):
         ai_msg = AIMessage(id="msg-abc", content="Analyse.")

@@ -1,4 +1,4 @@
-"""Warn node — prepends a structured interaction warning to the agent's response."""
+"""Warn node — appends a compact interaction notice to the agent's response."""
 
 from typing import Any
 
@@ -10,26 +10,19 @@ CRITICAL_LEVELS: frozenset[str] = frozenset({"contre-indication", "association d
 
 
 def warn_node(state: AgentState) -> dict[str, Any]:
-    """Prepend critical interaction warnings to the agent's response instead of blocking it."""
+    """Append a single-line interaction notice after the agent's response."""
     critical = [
         i
         for i in state.get("interactions_found", [])
         if i.get("niveau_contrainte", "").lower() in CRITICAL_LEVELS
     ]
 
-    warning_lines = "\n".join(f"• [{i['niveau_contrainte']}] {i['detail']}" for i in critical)
-
-    warning_prefix = (
-        "⚠️ INTERACTIONS CRITIQUES DÉTECTÉES (ANSM Thésaurus) :\n\n"
-        f"{warning_lines}\n\n"
-        "Toute décision thérapeutique doit être validée avec un professionnel de santé "
-        "et le RCP officiel du médicament.\n\n"
-        "---\n\n"
-    )
+    pairs = ", ".join(f"{i['detail']} ({i['niveau_contrainte']})" for i in critical)
+    notice = f"\n\n⚠️ Interaction(s) ANSM détectée(s) : {pairs}."
 
     # Replace the last AI message in-place (same id) to avoid duplicate output
     for msg in reversed(state["messages"]):
         if msg.type == "ai" and not getattr(msg, "tool_calls", None):
-            return {"messages": [AIMessage(id=msg.id, content=warning_prefix + str(msg.content))]}
+            return {"messages": [AIMessage(id=msg.id, content=str(msg.content) + notice)]}
 
-    return {"messages": [AIMessage(content=warning_prefix)]}
+    return {"messages": [AIMessage(content=notice)]}

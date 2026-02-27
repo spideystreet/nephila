@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: silver_ameli__open_medic
+    description: >
+      Drug reimbursement data from CNAM Open Medic, aggregated at CIP13 level (all demographics combined).
+      Source: NB_{year}_cip13.CSV.gz — one row per CIP13 code.
+      Joined with BDPM CIP table to enrich with CIS code.
+    columns:
+      - name: cip13
+        description: "13-digit CIP code (presentation identifier, join key with BDPM)"
+        data_tests:
+          - unique
+          - not_null
+      - name: cis
+        description: "CIS code joined from raw.cis_cip_bdpm — may be null if CIP13 not found in BDPM"
+      - name: libelle_presentation
+        description: "Drug presentation label from Open Medic (l_cip13)"
+      - name: nb_boites
+        description: "Total number of boxes dispensed in city pharmacies"
+        data_tests:
+          - not_null
+      - name: montant_rembourse
+        description: "Total amount reimbursed by Assurance Maladie in euros (REM)"
+      - name: montant_base_remboursement
+        description: "Total reimbursement base amount in euros (BSE)"
+      - name: nb_beneficiaires
+        description: "Total number of distinct beneficiaries who received this drug (nbc)"
