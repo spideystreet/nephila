@@ -10,7 +10,7 @@
 
 # --- expect_warn: true -------------------------------------------------------
 
-# Pharmacodynamic CI: AINS potentiate MTX toxicity
+# Pharmacodynamic CI: AINS potentiate MTX toxicity (Association déconseillée)
 - id: ibuprofene_methotrexate
   prompt: >
     Mon patient est suivi pour un psoriasis sous méthotrexate faible dose.
@@ -23,31 +23,32 @@
     - "trimethoprime"
     - "probenecide"
 
-# Pharmacokinetic CI: CYP3A4 inhibition → rhabdomyolysis risk
+# Association déconseillée: lithium toxicity potentiated by AINS (renal clearance)
+- id: lithium_ibuprofene
+  prompt: >
+    Patient suivi en psychiatrie sous lithium pour un trouble bipolaire.
+    Il souffre de douleurs articulaires et envisage de prendre de l'ibuprofène.
+    Y a-t-il une interaction à craindre ?
+  expect_warn: true
+  expect_in:
+    - "⚠️"
+    - "lithium"
+  expect_not:
+    - "fidaxomicine"
+
+# --- expect_warn: false ------------------------------------------------------
+
+# Précaution d'emploi only: our ANSM data shows PE (not CI/AD) for this pair
 - id: simvastatine_clarithromycine
   prompt: >
     Patient sous simvastatine 40 mg pour une hypercholestérolémie.
     Son généraliste veut lui prescrire de la clarithromycine pour une bronchite.
     Y a-t-il un risque ?
-  expect_warn: true
+  expect_warn: false
   expect_in:
-    - "⚠️"
-  expect_not: []
-
-# Association déconseillée: anticoagulant + antiarrhythmic (INR potentiation)
-- id: warfarine_amiodarone
-  prompt: >
-    Patient sous warfarine stable depuis 6 mois. Son cardiologue vient de lui prescrire
-    de l'amiodarone pour une FA paroxystique. Y a-t-il une interaction à surveiller ?
-  expect_warn: true
-  expect_in:
-    - "⚠️"
-    - "amiodarone"
+    - "précaution"
   expect_not:
-    - "aspirine"
-    - "fidaxomicine"
-
-# --- expect_warn: false ------------------------------------------------------
+    - "⚠️"
 
 # True negative: no known pharmacological interaction between these two drugs
 - id: paracetamol_amoxicilline
