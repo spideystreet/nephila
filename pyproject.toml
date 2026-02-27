@@ -39,6 +39,9 @@ dev = [
     "sqlfluff>=3.0",
     "sqlfluff-templater-dbt>=3.0",
     "pandas-stubs>=2.2",
+    # Evaluation
+    "langsmith>=0.7",
+    "pyyaml>=6.0",
 ]
 
 [build-system]

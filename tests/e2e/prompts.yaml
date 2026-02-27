@@ -1,0 +1,63 @@
+# Nephila E2E test prompts — versioned interaction test cases.
+# Each case has a prompt and assertions on the agent's final response.
+#
+# Fields:
+#   id          : unique identifier
+#   prompt      : user message sent to the agent
+#   expect_warn : true if a critical interaction (Contre-indication / Association déconseillée) must be flagged
+#   expect_in   : strings that MUST appear in the response (case-insensitive)
+#   expect_not  : strings that must NOT appear (false-positive guard)
+
+- id: warfarine_amiodarone_aspirine
+  prompt: >
+    Patient sous warfarine et amiodarone. Le cardiologue envisage d'ajouter de l'aspirine
+    à faible dose. Est-ce possible ?
+  expect_warn: true
+  expect_in:
+    - "⚠️"
+    - "association déconseillée"
+  expect_not:
+    - "fidaxomicine"
+    - "trimethoprime"
+
+- id: ciprofloxacine_metformine
+  prompt: >
+    Mon patient diabétique de type 2 sous metformine doit prendre de la ciprofloxacine
+    pour une infection urinaire. Y a-t-il une interaction ?
+  expect_warn: false
+  expect_in:
+    - "pas d'interaction"
+  expect_not:
+    - "⚠️"
+    - "contre-indication"
+
+- id: ibuprofene_methotrexate
+  prompt: >
+    Mon patient est suivi pour un psoriasis sous méthotrexate faible dose.
+    Il a de la fièvre et demande s'il peut prendre de l'ibuprofène. Est-ce compatible ?
+  expect_warn: true
+  expect_in:
+    - "⚠️"
+    - "anti-inflammatoires non stéroïdiens"
+    - "methotrexate"
+  expect_not:
+    - "trimethoprime"
+    - "probenecide"
+
+- id: simvastatine_clarithromycine
+  prompt: >
+    Patient sous simvastatine 40 mg. Il a une bronchite et le médecin prescrit de la
+    clarithromycine. Y a-t-il un problème ?
+  expect_warn: true
+  expect_in:
+    - "⚠️"
+  expect_not: []
+
+- id: ramipril_spironolactone_ibuprofene
+  prompt: >
+    Un patient hypertendu sous ramipril et spironolactone doit prendre de l'ibuprofène
+    pour des douleurs articulaires. Quelles interactions dois-je surveiller ?
+  expect_warn: true
+  expect_in:
+    - "⚠️"
+  expect_not: []
