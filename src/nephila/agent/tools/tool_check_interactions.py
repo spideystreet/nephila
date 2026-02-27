@@ -65,6 +65,9 @@ def _discover_ansm_classes(collection: object, substance: str, top_n: int = 2) -
     not individual drug names. This function queries ChromaDB with the individual name
     and extracts the most frequently appearing class names from the top results.
 
+    Requires count >= 2 to suppress single-occurrence noise (unrelated classes that
+    happen to appear once when the substance is unknown to the thesaurus).
+
     Example: 'warfarine' → ['ANTIVITAMINES K', 'ANTICOAGULANTS ORAUX']
     """
     import chromadb
@@ -77,19 +80,56 @@ def _discover_ansm_classes(collection: object, substance: str, top_n: int = 2) -
     )
     metas = (results["metadatas"] or [[]])[0]
 
+    # Count only from substance_a: in the ANSM thesaurus, the pharmacological class for
+    # a substance consistently appears as substance_a across many interactions.
+    # Counting substance_b would pick up interaction partners (e.g. METHOTREXATE when
+    # querying "ibuprofène") and incorrectly treat them as classes for our substance.
     counts: Counter[str] = Counter()
     for meta in metas:
         counts[str(meta["substance_a"])] += 1
-        counts[str(meta["substance_b"])] += 1
 
-    # Return the top_n most frequent names, excluding the query substance itself
     substance_upper = substance.upper()
     candidates = [
         name
-        for name, _ in counts.most_common()
-        if name.upper() != substance_upper
+        for name, count in counts.most_common()
+        if name.upper() != substance_upper and count >= 2
     ]
-    return candidates[:top_n] if candidates else [substance]
+    return candidates[:top_n] if candidates else []
+
+
+def _find_partner_classes(
+    collection: object,
+    class_a: str,
+    substance_b: str,
+    top_n: int = 3,
+) -> list[str]:
+    """
+    Given a known ANSM class name for substance A, find the ANSM class name(s) for
+    substance B by querying ChromaDB with the combined '{class_a} {substance_b}' text.
+
+    This resolves the synonym gap: e.g. 'ANTICOAGULANTS ORAUX aspirine' → returns
+    'ACIDE ACETYLSALICYLIQUE' as the thesaurus name for 'aspirine'.
+    """
+    import chromadb
+
+    assert isinstance(collection, chromadb.Collection)
+    results = collection.query(
+        query_texts=[f"{class_a} {substance_b}"],
+        n_results=5,
+        include=["metadatas"],
+    )
+    metas = (results["metadatas"] or [[]])[0]
+
+    class_a_upper = class_a.upper()
+    seen: set[str] = set()
+    candidates: list[str] = []
+    for meta in metas:
+        for key in ("substance_a", "substance_b"):
+            name = str(meta[key])
+            if name.upper() != class_a_upper and name not in seen:
+                seen.add(name)
+                candidates.append(name)
+    return candidates[:top_n]
 
 
 @tool
@@ -116,9 +156,11 @@ def check_interactions(substance_a: str, substance_b: str) -> str:
     # Step 1: Direct SQL search (fast path — works when drug names appear in the thesaurus)
     sql_lines = _sql_search(engine, substance_a, substance_b, seen)
 
-    # Step 2: Class discovery via ChromaDB + SQL retry
-    # The ANSM thesaurus uses class names (e.g. 'ANTIVITAMINES K') not individual names.
-    # We query ChromaDB to discover the likely class for each substance, then retry SQL.
+    # Step 2: Guided class discovery via ChromaDB + SQL retry.
+    # Strategy: discover the ANSM class for substance_a (e.g. 'warfarine' → 'ANTICOAGULANTS ORAUX'),
+    # then for each discovered class query ChromaDB with "{class_a} {substance_b}" to find the
+    # ANSM class for substance_b (e.g. 'ANTICOAGULANTS ORAUX aspirine' → 'ACIDE ACETYLSALICYLIQUE').
+    # This resolves synonym gaps that neither direct SQL nor individual class discovery can bridge.
     if not sql_lines:
         client = chromadb.HttpClient(host=settings.chroma_host, port=settings.chroma_port)
         ef = get_embedding_function(settings.embedding_model)
@@ -127,13 +169,18 @@ def check_interactions(substance_a: str, substance_b: str) -> str:
         )
 
         classes_a = _discover_ansm_classes(collection, substance_a)
-        classes_b = _discover_ansm_classes(collection, substance_b)
-
         for class_a in classes_a:
-            for class_b in classes_b:
-                if class_a == substance_a and class_b == substance_b:
-                    continue  # already tried in step 1
+            partner_classes = _find_partner_classes(collection, class_a, substance_b)
+            for class_b in partner_classes:
                 sql_lines += _sql_search(engine, class_a, class_b, seen)
+
+        # Symmetric pass: discover classes for substance_b, find partners for substance_a
+        if not sql_lines:
+            classes_b = _discover_ansm_classes(collection, substance_b)
+            for class_b in classes_b:
+                partner_classes = _find_partner_classes(collection, class_b, substance_a)
+                for class_a in partner_classes:
+                    sql_lines += _sql_search(engine, class_a, class_b, seen)
 
     # Step 3: Vector search fallback — catches interactions missed by SQL
     if not sql_lines:
@@ -144,33 +191,24 @@ def check_interactions(substance_a: str, substance_b: str) -> str:
                 "idx_ansm_interaction_v1", embedding_function=ef  # type: ignore[arg-type]
             )
 
-        query_terms = {substance_a.lower(), substance_b.lower()}
-
-        def _substance_matches_query(substance: str) -> bool:
-            s = substance.lower()
-            return any(term in s or s in term for term in query_terms)
-
+        # Last resort: take the single most semantically similar result.
+        # We reach this only if both SQL and guided class discovery failed.
+        # Limiting to 1 result minimises false positives; the embedding similarity
+        # for the combined "{substance_a} {substance_b}" query is our best proxy.
         vector_results = collection.query(
             query_texts=[f"{substance_a} {substance_b}"],
-            n_results=5,
-            include=["documents", "metadatas", "distances"],
+            n_results=1,
+            include=["documents", "metadatas"],
         )
         docs = (vector_results["documents"] or [[]])[0]
         metas = (vector_results["metadatas"] or [[]])[0]
-        distances = (vector_results["distances"] or [[]])[0]
 
-        for doc, meta, dist in zip(docs, metas, distances):
-            if not _substance_matches_query(
-                str(meta["substance_a"])
-            ) or not _substance_matches_query(str(meta["substance_b"])):
-                continue
+        for doc, meta in zip(docs, metas):
             sa, sb = str(meta["substance_a"]), str(meta["substance_b"])
             pair = frozenset([sa, sb])
             if pair not in seen:
                 seen.add(pair)
-                sql_lines.append(
-                    f"[{meta['niveau_contrainte']}] {sa} + {sb}\n{doc}"  # noqa: E501
-                )
+                sql_lines.append(f"[{meta['niveau_contrainte']}] {sa} + {sb}\n{doc}")
 
     if not sql_lines:
         return (

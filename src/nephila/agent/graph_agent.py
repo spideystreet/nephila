@@ -60,7 +60,10 @@ def build_agent() -> CompiledStateGraph:  # type: ignore[type-arg]
         model=settings.openrouter_model,
         default_headers={"X-Title": "Nephila"},
     )
-    llm_with_tools = llm.bind_tools(TOOLS)
+    # parallel_tool_calls=False: some providers (e.g. Mistral via OpenRouter) raise
+    # "Not the same number of function calls and responses" when the model batches
+    # multiple tool calls in a single message. Force sequential calls.
+    llm_with_tools = llm.bind_tools(TOOLS, parallel_tool_calls=False)
 
     def agent_node(state: AgentState) -> dict[str, Any]:
         messages = list(state["messages"])
