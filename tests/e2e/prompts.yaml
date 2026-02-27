@@ -10,7 +10,8 @@
 
 # --- expect_warn: true -------------------------------------------------------
 
-# Pharmacodynamic CI: AINS potentiate MTX toxicity (Association déconseillée)
+# Association déconseillée: AINS potentiate MTX toxicity
+# DB pair: METHOTREXATE + ANTI-INFLAMMATOIRES NON STÉROÏDIENS (AD)
 - id: ibuprofene_methotrexate
   prompt: >
     Mon patient est suivi pour un psoriasis sous méthotrexate faible dose.
@@ -23,31 +24,32 @@
     - "trimethoprime"
     - "probenecide"
 
-# Association déconseillée: lithium toxicity potentiated by AINS (renal clearance)
-- id: lithium_ibuprofene
+# Contre-indication: ciclosporine inhibits CYP3A4, simvastatine is a substrate → rhabdomyolysis
+# DB pair: CICLOSPORINE + SIMVASTATINE (CI)
+- id: ciclosporine_simvastatine
   prompt: >
-    Patient suivi en psychiatrie sous lithium pour un trouble bipolaire.
-    Il souffre de douleurs articulaires et envisage de prendre de l'ibuprofène.
-    Y a-t-il une interaction à craindre ?
+    Patient greffé rénal sous ciclosporine. Son bilan lipidique est perturbé
+    et le cardiologue envisage d'introduire de la simvastatine.
+    Y a-t-il un risque d'interaction ?
   expect_warn: true
   expect_in:
     - "⚠️"
-    - "lithium"
+    - "simvastatine"
   expect_not:
-    - "fidaxomicine"
+    - "lithium"
 
 # --- expect_warn: false ------------------------------------------------------
 
-# Précaution d'emploi only: our ANSM data shows PE (not CI/AD) for this pair
-# expect_in uses drug name only — agent may not always echo "précaution" verbatim
-- id: simvastatine_clarithromycine
+# Précaution d'emploi: amiodarone increases simvastatine exposure (CYP3A4 inhibition)
+# DB pair: AMIODARONE + SIMVASTATINE (PE) — exact DCI names, no class name needed
+- id: amiodarone_simvastatine
   prompt: >
-    Patient sous simvastatine 40 mg pour une hypercholestérolémie.
-    Son généraliste veut lui prescrire de la clarithromycine pour une bronchite.
-    Y a-t-il un risque ?
+    Patient sous amiodarone 200 mg/j pour une fibrillation auriculaire.
+    Son médecin veut ajouter de la simvastatine pour une dyslipidémie.
+    Y a-t-il une interaction connue ?
   expect_warn: false
   expect_in:
-    - "clarithromycine"
+    - "simvastatine"
   expect_not:
     - "⚠️"
 
