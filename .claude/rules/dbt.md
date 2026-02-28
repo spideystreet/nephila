@@ -37,7 +37,7 @@ Reference with `{{ source('raw', 'table_name') }}`.
 ## Current Silver Models
 
 `silver_bdpm__`: medicament, presentation, composition, substance, groupe_generique, generique, condition_delivrance, info_importante
-`silver_ansm__`: interaction
+`silver_ansm__`: interaction, substance_class
 
 ## Singular Tests (`dbt/tests/`)
 

@@ -16,7 +16,8 @@ raw.cis_gener_bdpm    ──►  silver.silver_bdpm__groupe_generique
                            silver.silver_bdpm__generique
 raw.cis_cpd_bdpm      ──►  silver.silver_bdpm__condition_delivrance
 raw.cis_infoimportantes ► silver.silver_bdpm__info_importante
-raw.ansm_thesaurus    ──►  silver.silver_ansm__interaction
+raw.ansm_thesaurus        ──►  silver.silver_ansm__interaction
+raw.ansm_substance_class  ──►  silver.silver_ansm__substance_class
 ```
 
 ## BDPM Loader
@@ -44,11 +45,12 @@ All Silver models are materialized as `TABLE` in the `silver` schema. Each model
 | `silver_bdpm__condition_delivrance` | Prescription/dispensing conditions |
 | `silver_bdpm__info_importante` | RCP links per specialty |
 
-### ANSM model (`silver_ansm__*`)
+### ANSM models (`silver_ansm__*`)
 
 | Model | Description |
 |-------|-------------|
 | `silver_ansm__interaction` | Drug interactions — substance A × B, constraint level, risk |
+| `silver_ansm__substance_class` | Substance DCI → ANSM pharmacological class mappings (auto-resolution) |
 
 ## Running dbt
 
@@ -71,4 +73,5 @@ All raw tables are declared in `dbt/models/sources.yml` under source `raw`:
 -- Reference raw tables in dbt models
 {{ source('raw', 'cis_bdpm') }}
 {{ source('raw', 'ansm_thesaurus') }}
+{{ source('raw', 'ansm_substance_class') }}
 ```

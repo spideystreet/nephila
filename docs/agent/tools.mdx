@@ -13,7 +13,7 @@ The agent has access to four tools, each backed by a specific data source. Tools
 |------|------|-------------|-------------|
 | `search_drug` | `tool_search_drug.py` | ChromaDB `idx_bdpm_medicament_v1` | Semantic search over BDPM drug specialties |
 | `find_generics` | `tool_find_generics.py` | Silver `silver_bdpm__generique` | Find generic equivalents by CIS code |
-| `check_interactions` | `tool_check_interactions.py` | ChromaDB `idx_ansm_interaction_v1` | ANSM drug interaction lookup |
+| `check_interactions` | `tool_check_interactions.py` | Silver `silver_ansm__substance_class` + `silver_ansm__interaction` + ChromaDB `idx_ansm_interaction_v1` | ANSM drug interaction lookup with auto-resolution |
 | `get_rcp` | `tool_get_rcp.py` | Silver `silver_bdpm__info_importante` | Retrieve the official RCP link for a specialty |
 
 ## `search_drug`
@@ -40,28 +40,19 @@ SQL lookup against the Silver `silver_bdpm__generique` table.
 
 ## `check_interactions`
 
-Dual-strategy lookup against the ANSM interaction data.
+Dual-strategy lookup against the ANSM interaction data with **automatic substance → class resolution**.
 
-- Input: **ANSM pharmacological class name** (preferred) or individual substance name as fallback
+- Input: individual DCI names (e.g. `warfarine`, `ibuprofène`) — the tool resolves them automatically to ANSM pharmacological class names via `silver_ansm__substance_class`
 - Output: list of interactions with constraint level and risk description
 - Result format: `[Contre-indication] SUBSTANCE_A + SUBSTANCE_B: risk detail`
 
-**Strategy 1 — SQL ILIKE (primary)**: exact/partial match against `silver.silver_ansm__interaction`, sorted by constraint level severity. Returns up to 20 results.
+**Step 0 — Auto-resolve**: each substance DCI is looked up in `silver.silver_ansm__substance_class` to get the corresponding ANSM class names (e.g. `warfarine` → `ANTIVITAMINES K`). Falls back to the original name if no mapping exists.
 
-**Strategy 2 — ChromaDB vector search (fallback)**: semantic search against `idx_ansm_interaction_v1` for class names the LLM could not resolve. Results are deduplicated across both strategies.
+**Step 1 — SQL ILIKE (primary)**: searches all combinations of resolved class names + original names against `silver.silver_ansm__interaction`, sorted by constraint level severity. Both accented and normalized (unaccented) forms are used to handle PostgreSQL accent-sensitive ILIKE.
 
-<Note>
-The ANSM Thésaurus indexes interactions by **drug class names**, not individual substance names. The LLM must resolve substance → class before calling this tool.
+**Step 2 — ChromaDB vector search (fallback)**: semantic search against `idx_ansm_interaction_v1` with lexical overlap filtering to prevent false positives. Results are deduplicated across both strategies.
 
-| Substance | ANSM class to use |
-|-----------|------------------|
-| warfarine, acenocoumarol, fluindione | `ANTIVITAMINES K` |
-| aspirine (antiagrégant) | `ANTIAGREGANTS PLAQUETTAIRES` |
-| ciprofloxacine, lévofloxacine | `FLUOROQUINOLONES` |
-| MAOIs | `INHIBITEURS DE LA MAO` |
-| SSRIs | `INHIBITEURS DE RECAPTURE DE LA SEROTONINE` |
-| statines | `STATINES` |
-</Note>
+When no interaction is found, the tool returns a prescriptive message instructing the LLM to report insufficient data rather than hallucinate.
 
 <Warning>
 This tool **must** be called before any drug recommendation. The guardrail node enforces this by checking `interactions_checked` in the agent state.

@@ -19,8 +19,9 @@ Orchestration: **Dagster**. Transformations: **dbt + Python**.
 
 ```
 bdpm_raw ──────────┐
-                   ├──► bdpm_to_raw ──┐
-ansm_thesaurus_raw ─► ansm_to_raw ───┴──► silver_dbt ──► gold_embeddings
+                   ├──► bdpm_to_raw ────────┐
+ansm_thesaurus_raw ─┬► ansm_to_raw ────────┤
+                    └► ansm_classes_to_raw ─┴──► silver_dbt ──► gold_embeddings
 ```
 
 ## Key Files
