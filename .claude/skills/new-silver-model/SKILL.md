@@ -1,3 +1,10 @@
+---
+name: new-silver-model
+description: Create a new dbt Silver model with SQL + YAML contract. Use when adding a new Silver layer model from a raw source table.
+disable-model-invocation: true
+argument-hint: "<source>__<entity>"
+---
+
 # Skill: Add a New Silver dbt Model
 
 ## Steps
@@ -30,6 +37,6 @@
 
 5. **Validate** locally:
    ```bash
-   uv run dbt run --project-dir dbt --profiles-dir dbt --select <model_name>
-   uv run dbt test --project-dir dbt --profiles-dir dbt --select <model_name>
+   uv run dotenv -f dbt/.env run -- uv run dbt run --project-dir dbt --profiles-dir dbt --select <model_name>
+   uv run dotenv -f dbt/.env run -- uv run dbt test --project-dir dbt --profiles-dir dbt --select <model_name>
    ```
