@@ -1,0 +1,12 @@
+version: 2
+
+singular_tests:
+  - name: silver_ansm__interaction__substance_a_not_numeric
+    description: >
+      Ensures substance_a is never a bare page number (e.g. "2", "183").
+      Pure numeric strings are PDF pagination artefacts from the ANSM layout.
+    model: silver_ansm__interaction
+    column: substance_a
+    failure: >
+      Returns rows where substance_a matches '^[0-9]+$' — page numbers
+      incorrectly captured as substance names during PDF parsing.
