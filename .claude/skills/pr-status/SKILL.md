@@ -1,6 +1,6 @@
 ---
 name: pr-status
-description: Fetch and display the full status of the current PR — CI checks, reviews, and code comments — using GitHub MCP tools. Invoke manually with /pr-status.
+description: Fetch and display the full status of the current PR — CI checks, GitHub Actions runs, reviews, and code comments — using GitHub MCP tools. Invoke manually with /pr-status.
 disable-model-invocation: true
 ---
 
@@ -20,14 +20,27 @@ If no open PR is found, report: "No open PR found for branch `<branch>`."
 
 ### 2. Fetch all PR data (in parallel)
 
-Call all four MCP tools in a **single parallel batch**:
+Call all MCP tools + Actions run in a **single parallel batch**:
 
-| MCP tool | Data |
-|----------|------|
+| Tool | Data |
+|------|------|
 | `mcp__github__get_pull_request` | Title, state, author, base/head, mergeable, draft |
-| `mcp__github__get_pull_request_status` | CI check runs (name, status, conclusion) |
+| `mcp__github__get_pull_request_status` | Commit statuses (if any) |
 | `mcp__github__get_pull_request_reviews` | Reviews (author, state, body) |
 | `mcp__github__get_pull_request_comments` | Code review comments (path, line, body, diff_hunk) |
+| `gh run list --branch <branch> --limit 5 --json name,status,conclusion,headSha,url` | GitHub Actions workflow runs |
+
+Note: GitHub MCP does not expose Actions runs, so use `gh run list` as a **necessary exception** for this data only.
+
+### 2b. Fetch failed job logs (conditional)
+
+If any Actions run has `conclusion: "failure"`, fetch the logs for the **most recent failed run**:
+
+```bash
+gh run view <run_id> --log-failed 2>&1 | tail -60
+```
+
+Parse the output to extract the failing job name, step, and error message.
 
 ### 3. Format and display
 
@@ -38,11 +51,19 @@ Output a single formatted dashboard:
 
 **State**: <open/closed/merged> | **Branch**: <head> → <base> | **Author**: @<login>
 
-### CI Checks
+### GitHub Actions
 
-| Check | Status | Conclusion |
-|-------|--------|------------|
-| <name> | <status> | <conclusion> |
+| Workflow | Status | Conclusion | SHA |
+|----------|--------|------------|-----|
+| <name> | <status> | <conclusion> | <sha[:7]> |
+
+### Commit Statuses
+
+| Context | State |
+|---------|-------|
+| <context> | <state> |
+
+(or "None" if empty)
 
 ### Reviews
 
@@ -60,10 +81,23 @@ Output a single formatted dashboard:
 
 If a section has no items, show "None" instead of the table/list.
 
+If CI failed, add a **Failure Logs** section after GitHub Actions:
+
+```
+### Failure Logs (run <run_id>)
+
+**Job**: <job_name> | **Step**: <step_name>
+
+\`\`\`
+<last ~40 lines of error output>
+\`\`\`
+```
+
 ## Rules
 
-- **Always use GitHub MCP tools** — never fall back to `gh` CLI
+- **Always use GitHub MCP tools** for PR data — never fall back to `gh` CLI
+- Exception: use `gh run list` for GitHub Actions runs (no MCP equivalent)
 - Use `git` CLI only for local branch detection
-- Call all four MCP tools in parallel to minimize latency
+- Call all tools in parallel to minimize latency
 - Do not modify any files or state — this is a read-only skill
 - Owner and repo are always `spideystreet` / `nephila`
