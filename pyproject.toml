@@ -79,6 +79,9 @@ ignore_errors = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "integration: requires Docker stack (PostgreSQL + ChromaDB)",
+]
 
 [tool.dagster]
 module_name = "nephila.pipeline.definitions"

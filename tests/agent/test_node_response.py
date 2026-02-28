@@ -44,3 +44,25 @@ class TestResponseNode:
         ])
         result = response_node(state)
         assert result["source_cis"] is None
+
+    def test_only_current_turn_cis_extracted(self):
+        """CIS from a previous turn (before last HumanMessage) must be ignored."""
+        state = _state([
+            HumanMessage(content="first question"),
+            ToolMessage(content="CIS 11111111 — OLD_DRUG", tool_call_id="old"),
+            HumanMessage(content="new question"),
+            ToolMessage(content="CIS 22222222 — NEW_DRUG", tool_call_id="new"),
+        ])
+        result = response_node(state)
+        assert result["source_cis"] == "22222222"
+
+    def test_no_cis_in_current_turn_returns_none(self):
+        """Even if previous turn has a CIS, return None when current turn has none."""
+        state = _state([
+            HumanMessage(content="first question"),
+            ToolMessage(content="CIS 11111111 — OLD_DRUG", tool_call_id="old"),
+            HumanMessage(content="bonjour"),
+            AIMessage(content="Comment puis-je vous aider ?"),
+        ])
+        result = response_node(state)
+        assert result["source_cis"] is None
