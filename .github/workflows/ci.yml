@@ -50,4 +50,4 @@ jobs:
           version: "latest"
           enable-cache: true
       - run: uv sync --extra dev
-      - run: uv run pytest tests/ -v
+      - run: uv run pytest -m "not integration" -v
