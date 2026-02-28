@@ -138,6 +138,26 @@ def parse_thesaurus_classes(pdf_path: Path) -> list[dict[str, str]]:
     log = get_dagster_logger()
     records: list[dict[str, str]] = []
     current_header: str | None = None
+    paren_buffer: str | None = None  # accumulates multi-line parenthetical lists
+
+    def _flush_paren_buffer() -> None:
+        """Emit records from the completed parenthetical buffer."""
+        nonlocal paren_buffer
+        if paren_buffer is None or current_header is None:
+            paren_buffer = None
+            return
+        m = _CLASS_MEMBERS_RE.match(paren_buffer)
+        if m:
+            members = [mb.strip() for mb in m.group(1).split(",") if mb.strip()]
+            for member in members:
+                records.append(
+                    {
+                        "substance_dci": member.lower(),
+                        "classe_ansm": current_header,
+                        "source": "parenthetical",
+                    }
+                )
+        paren_buffer = None
 
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
@@ -147,18 +167,22 @@ def parse_thesaurus_classes(pdf_path: Path) -> list[dict[str, str]]:
                 if not line:
                     continue
 
-                # Parenthetical member list: (substance1, substance2, ...)
-                m_members = _CLASS_MEMBERS_RE.match(line)
-                if m_members and current_header:
-                    members = [m.strip() for m in m_members.group(1).split(",") if m.strip()]
-                    for member in members:
-                        records.append(
-                            {
-                                "substance_dci": member.lower(),
-                                "classe_ansm": current_header,
-                                "source": "parenthetical",
-                            }
-                        )
+                # Continue accumulating a multi-line parenthetical list
+                if paren_buffer is not None:
+                    paren_buffer += " " + line
+                    if ")" in line:
+                        _flush_paren_buffer()
+                    continue
+
+                # Start of a parenthetical list (may span multiple lines)
+                if line.startswith("(") and "," in line and current_header:
+                    if line.endswith(")"):
+                        # Single-line list — process immediately
+                        paren_buffer = line
+                        _flush_paren_buffer()
+                    else:
+                        # Multi-line list — start buffering
+                        paren_buffer = line
                     continue
 
                 # Voir aussi line
