@@ -13,12 +13,17 @@ class TestGetEngine:
     def test_returns_singleton(self):
         """Calling _get_engine twice returns the same engine instance."""
         queries._engine = None
-        try:
-            e1 = queries._get_engine()
-            e2 = queries._get_engine()
-            assert e1 is e2
-        finally:
-            queries._engine = None
+        mock_engine = MagicMock()
+        with patch("nephila.agent.queries.PipelineSettings"), patch(
+            "nephila.agent.queries.create_engine", return_value=mock_engine
+        ):
+            try:
+                e1 = queries._get_engine()
+                e2 = queries._get_engine()
+                assert e1 is e2
+                assert e1 is mock_engine
+            finally:
+                queries._engine = None
 
 
 class TestResolveAnsmClasses:
