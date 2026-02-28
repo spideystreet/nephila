@@ -13,6 +13,8 @@
 # Association déconseillée: AINS potentiate MTX toxicity
 # DB pair: METHOTREXATE + ANTI-INFLAMMATOIRES NON STÉROÏDIENS (AD)
 - id: ibuprofene_methotrexate
+  substance_a: ibuprofène
+  substance_b: méthotrexate
   prompt: >
     Mon patient est suivi pour un psoriasis sous méthotrexate faible dose.
     Il a de la fièvre et demande s'il peut prendre de l'ibuprofène. Est-ce compatible ?
@@ -27,6 +29,8 @@
 # Contre-indication: ciclosporine inhibits CYP3A4, simvastatine is a substrate → rhabdomyolysis
 # DB pair: CICLOSPORINE + SIMVASTATINE (CI)
 - id: ciclosporine_simvastatine
+  substance_a: ciclosporine
+  substance_b: simvastatine
   prompt: >
     Patient greffé rénal sous ciclosporine. Son bilan lipidique est perturbé
     et le cardiologue envisage d'introduire de la simvastatine.
@@ -43,6 +47,8 @@
 # Précaution d'emploi: amiodarone increases simvastatine exposure (CYP3A4 inhibition)
 # DB pair: AMIODARONE + SIMVASTATINE (PE) — exact DCI names, no class name needed
 - id: amiodarone_simvastatine
+  substance_a: amiodarone
+  substance_b: simvastatine
   prompt: >
     Patient sous amiodarone 200 mg/j pour une fibrillation auriculaire.
     Son médecin veut ajouter de la simvastatine pour une dyslipidémie.
@@ -55,6 +61,8 @@
 
 # True negative: no known pharmacological interaction between these two drugs
 - id: paracetamol_amoxicilline
+  substance_a: paracétamol
+  substance_b: amoxicilline
   prompt: >
     Mon patient a une angine bactérienne traitée par amoxicilline.
     Il souhaite prendre du paracétamol pour la douleur et la fièvre.
@@ -78,6 +86,8 @@
 # Azole antifungal + AVK: FLUCONAZOLE is indexed individually in ANSM (not as ANTIFONGIQUES AZOLÉS)
 # DB pair: FLUCONAZOLE + ANTIVITAMINES K (Précaution d'emploi) — tests individual DCI lookup
 - id: fluconazole_warfarine
+  substance_a: fluconazole
+  substance_b: warfarine
   prompt: >
     Mon patient est sous warfarine depuis 6 mois pour une MTEV.
     Son dermatologue vient de lui prescrire du fluconazole pour une candidose unguéale.
@@ -100,17 +110,20 @@
   expect_not:
     - "⚠️"
 
-# "A prendre en compte" level: SSRI + tramadol — guardrail must NOT warn (lowest constraint)
-# DB pair: TRAMADOL + INHIBITEURS SÉLECTIFS DE LA RECAPTURE DE LA SÉROTONINE (A prendre en compte)
+# Association déconseillée: FLUOXETINE + TRAMADOL (direct DCI pair, AD level)
+# Also has class-level APEC: ISRS + TRAMADOL — but the DCI pair is AD, which triggers warn
+# DB pair: FLUOXETINE + TRAMADOL (AD)
 - id: fluoxetine_tramadol
+  substance_a: fluoxétine
+  substance_b: tramadol
   prompt: >
     Un patient sous fluoxétine 20 mg pour une dépression souhaite prendre
     du tramadol pour des douleurs lombaires. Y a-t-il un risque ?
-  expect_warn: false
+  expect_warn: true
   expect_in:
+    - "⚠️"
     - "tramadol"
   expect_not:
-    - "⚠️"
     - "lithium"
 
 # Association déconseillée: AINS increase hemorrhagic risk with oral anticoagulants (GI mucosal damage)
@@ -118,6 +131,8 @@
 # Class resolution required: naproxene → ANTI-INFLAMMATOIRES NON STÉROÏDIENS
 #                            apixaban  → ANTICOAGULANTS ORAUX
 - id: naproxene_apixaban
+  substance_a: naproxène
+  substance_b: apixaban
   prompt: >
     Une patiente de 72 ans est sous apixaban 5 mg deux fois par jour pour une fibrillation
     auriculaire. Elle consulte pour des douleurs articulaires et demande si elle peut prendre
@@ -136,6 +151,8 @@
 #                            glibenclamide → SULFAMIDES HYPOGLYCÉMIANTS
 # Mechanism distinct from existing PE cases (not CYP, not serotonin): autonomic blockade
 - id: atenolol_glibenclamide
+  substance_a: aténolol
+  substance_b: glibenclamide
   prompt: >
     Un patient diabétique de type 2 traité par glibenclamide 5 mg vient de se voir prescrire
     de l'aténolol 50 mg pour de l'hypertension artérielle. Son médecin s'interroge sur
@@ -143,7 +160,7 @@
   expect_warn: false
   expect_in:
     - "glibenclamide"
-    - "atenolol"
+    - "aténolol"
   expect_not:
     - "⚠️"
     - "warfarine"
