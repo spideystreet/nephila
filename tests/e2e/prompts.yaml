@@ -75,6 +75,21 @@
   expect_not:
     - "⚠️"
 
+# Azole antifungal + AVK: FLUCONAZOLE is indexed individually in ANSM (not as ANTIFONGIQUES AZOLÉS)
+# DB pair: FLUCONAZOLE + ANTIVITAMINES K (Précaution d'emploi) — tests individual DCI lookup
+- id: fluconazole_warfarine
+  prompt: >
+    Mon patient est sous warfarine depuis 6 mois pour une MTEV.
+    Son dermatologue vient de lui prescrire du fluconazole pour une candidose unguéale.
+    Y a-t-il un problème ?
+  expect_warn: false
+  expect_in:
+    - "fluconazole"
+    - "warfarine"
+  expect_not:
+    - "⚠️"
+    - "fluoroquinolone"
+
 # RCP tool path: tests search_drug → get_rcp chain (single-drug, no interaction partner)
 - id: rcp_aspirine
   prompt: >
