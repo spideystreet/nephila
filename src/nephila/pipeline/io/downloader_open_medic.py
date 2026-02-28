@@ -39,8 +39,7 @@ def download_open_medic_cip13(base_url: str, year: int, dest_dir: Path) -> Path:
     if not matches:
         all_links = re.findall(r'href="([^"]+)"', resp.text)
         raise ValueError(
-            f"Could not find {target_filename} in Open Medic listing. "
-            f"Available links: {all_links}"
+            f"Could not find {target_filename} in Open Medic listing. Available links: {all_links}"
         )
 
     relative_url = matches[0]

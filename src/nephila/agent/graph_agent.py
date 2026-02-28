@@ -98,4 +98,20 @@ def build_agent() -> CompiledStateGraph:  # type: ignore[type-arg]
     return builder.compile()
 
 
-graph = build_agent()
+def get_graph() -> CompiledStateGraph:  # type: ignore[type-arg]
+    """Lazy singleton — avoids requiring env vars at import time."""
+    global _graph  # noqa: PLW0603
+    if _graph is None:
+        _graph = build_agent()
+    return _graph
+
+
+_graph: CompiledStateGraph | None = None  # type: ignore[type-arg]
+
+
+# LangGraph Studio / langgraph dev expects a module-level `graph` attribute.
+# Use __getattr__ so the graph is only built when actually accessed at runtime.
+def __getattr__(name: str) -> object:
+    if name == "graph":
+        return get_graph()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

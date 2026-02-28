@@ -24,7 +24,7 @@ _BDPM_RAW_SPECS = [
 
 
 @multi_asset(specs=_BDPM_RAW_SPECS)
-def bdpm_to_raw(context: AssetExecutionContext):  # type: ignore[no-untyped-def]
+def bdpm_to_raw(context: AssetExecutionContext) -> None:
     """Load all BDPM .txt files from Bronze into the PostgreSQL raw schema."""
     settings = PipelineSettings()
     engine = create_engine(settings.postgres_dsn)
@@ -56,9 +56,7 @@ def ansm_to_raw(context: AssetExecutionContext) -> None:
 def open_medic_to_raw(context: AssetExecutionContext) -> None:
     """Load the Open Medic CIP13 CSV from Bronze into raw.open_medic."""
     settings = PipelineSettings()
-    csv_path = (
-        settings.bronze_dir / "open_medic" / f"NB_{settings.open_medic_year}_cip13.CSV.gz"
-    )
+    csv_path = settings.bronze_dir / "open_medic" / f"NB_{settings.open_medic_year}_cip13.CSV.gz"
     engine = create_engine(settings.postgres_dsn)
     count = load_open_medic_to_raw(csv_path, engine)
     context.add_output_metadata({"rows_loaded": count, "year": settings.open_medic_year})

@@ -9,25 +9,25 @@ from sqlalchemy import Engine
 # Expected columns in the Open Medic CIP13 CSV (CNAM format, semicolon-separated)
 # Source: https://www.assurance-maladie.ameli.fr/content/descriptif-des-variables-de-la-serie-open-medic
 OPEN_MEDIC_COLUMNS = [
-    "ANR",        # Year
-    "CIP13",      # CIP13 code (13 digits)
-    "LIB_CIP",    # Drug label at CIP level
-    "ATC1",       # ATC level 1 code
-    "LIB_ATC1",   # ATC level 1 label
-    "ATC2",       # ATC level 2 code
-    "LIB_ATC2",   # ATC level 2 label
-    "ATC3",       # ATC level 3 code
-    "LIB_ATC3",   # ATC level 3 label
-    "ATC4",       # ATC level 4 code
-    "LIB_ATC4",   # ATC level 4 label
-    "ATC5",       # ATC level 5 code
-    "LIB_ATC5",   # ATC level 5 label
-    "TOP_GEN",    # Generic flag (0=branded, 1=generic)
-    "GEN_NUM",    # Generic group number
-    "REM",        # Amount reimbursed (€)
-    "BSE",        # Reimbursement base amount (€)
-    "BOITES",     # Number of boxes dispensed
-    "NBC",        # Number of beneficiaries
+    "ANR",  # Year
+    "CIP13",  # CIP13 code (13 digits)
+    "LIB_CIP",  # Drug label at CIP level
+    "ATC1",  # ATC level 1 code
+    "LIB_ATC1",  # ATC level 1 label
+    "ATC2",  # ATC level 2 code
+    "LIB_ATC2",  # ATC level 2 label
+    "ATC3",  # ATC level 3 code
+    "LIB_ATC3",  # ATC level 3 label
+    "ATC4",  # ATC level 4 code
+    "LIB_ATC4",  # ATC level 4 label
+    "ATC5",  # ATC level 5 code
+    "LIB_ATC5",  # ATC level 5 label
+    "TOP_GEN",  # Generic flag (0=branded, 1=generic)
+    "GEN_NUM",  # Generic group number
+    "REM",  # Amount reimbursed (€)
+    "BSE",  # Reimbursement base amount (€)
+    "BOITES",  # Number of boxes dispensed
+    "NBC",  # Number of beneficiaries
 ]
 
 

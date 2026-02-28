@@ -1,5 +1,6 @@
 """ANSM Thésaurus interaction lookup — dual SQL ILIKE + ChromaDB vector search."""
 
+import logging
 import re
 import unicodedata
 
@@ -9,6 +10,8 @@ from sqlalchemy import create_engine, text
 
 from nephila.pipeline.config_pipeline import PipelineSettings
 from nephila.pipeline.io.embedder_local import get_embedding_function
+
+logger = logging.getLogger(__name__)
 
 
 def _normalize(name: str) -> str:
@@ -100,7 +103,8 @@ def check_interactions(substance_a: str, substance_b: str) -> str:
     client = chromadb.HttpClient(host=settings.chroma_host, port=settings.chroma_port)
     ef = get_embedding_function(settings.embedding_model)
     collection = client.get_collection(
-        "idx_ansm_interaction_v1", embedding_function=ef  # type: ignore[arg-type]
+        "idx_ansm_interaction_v1",
+        embedding_function=ef,  # type: ignore[arg-type]
     )
 
     vector_results = collection.query(
