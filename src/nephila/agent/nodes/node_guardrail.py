@@ -17,7 +17,7 @@ def guardrail_node(state: AgentState) -> dict[str, Any]:
 
     seen_pairs: set[frozenset[str]] = set()
     interactions: list[dict[str, Any]] = []
-    for msg in messages[last_human_message_idx(messages):]:
+    for msg in messages[last_human_message_idx(messages) :]:
         if not isinstance(msg, ToolMessage):
             continue
         content = str(msg.content)

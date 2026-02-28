@@ -204,7 +204,5 @@ def parse_thesaurus_classes(pdf_path: Path) -> list[dict[str, str]]:
                 if _is_substance_a(line) and not line.startswith("("):
                     current_header = line
 
-    log.info(
-        f"[bronze] ANSM class parser — {len(records)} substance-class mappings extracted"
-    )
+    log.info(f"[bronze] ANSM class parser — {len(records)} substance-class mappings extracted")
     return records

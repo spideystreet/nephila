@@ -13,7 +13,7 @@ def response_node(state: AgentState) -> dict[str, Any]:
     messages = state["messages"]
 
     source_cis: str | None = None
-    for msg in messages[last_human_message_idx(messages):]:
+    for msg in messages[last_human_message_idx(messages) :]:
         if isinstance(msg, ToolMessage):
             content = str(msg.content)
             if "CIS " in content:
