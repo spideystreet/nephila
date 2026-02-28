@@ -10,7 +10,8 @@ Create a GitHub PR following the conventions defined in `.claude/rules/git.md`.
 
 ## Steps
 
-1. `git log main..HEAD --oneline` — review commits included
+1. **Pre-flight: docs sync** — run `/docs-up` first to ensure docs are up to date with code changes
+2. `git log main..HEAD --oneline` — review commits included
 2. Push if needed: `git push -u origin <branch>`
 3. Create PR:
    ```bash
