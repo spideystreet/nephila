@@ -216,6 +216,7 @@ CLAUDE.local.md
 
 # Nephila — Other AI assistant configs (machine-specific)
 AGENTS.md
+GEMINI.md
 
 # Nephila — LangSmith eval exports
 nephila-*.csv
