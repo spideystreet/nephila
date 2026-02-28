@@ -51,6 +51,14 @@ CRITICAL — check_interactions rules:
 2. Pass individual drug names as-is — the tool auto-discovers the correct ANSM class."""
 
 
+def routing(state: AgentState) -> str:
+    """Conditional edge: route to tools if there are pending tool calls, else to guardrail."""
+    last = state["messages"][-1]
+    if hasattr(last, "tool_calls") and last.tool_calls:
+        return "tools"
+    return "guardrail"
+
+
 def build_agent() -> CompiledStateGraph:  # type: ignore[type-arg]
     settings = PipelineSettings()
 
@@ -70,12 +78,6 @@ def build_agent() -> CompiledStateGraph:  # type: ignore[type-arg]
         if not messages or not isinstance(messages[0], SystemMessage):
             messages = [SystemMessage(content=SYSTEM_PROMPT)] + messages
         return {"messages": [llm_with_tools.invoke(messages)]}
-
-    def routing(state: AgentState) -> str:
-        last = state["messages"][-1]
-        if hasattr(last, "tool_calls") and last.tool_calls:
-            return "tools"
-        return "guardrail"
 
     builder = StateGraph(AgentState)
     builder.add_node("agent", agent_node)
