@@ -90,7 +90,7 @@ def interaction_evaluator(
 
 
 def main() -> None:
-    from nephila.agent.graph_agent import build_agent
+    from nephila.agent.graph_agent import RECURSION_LIMIT, build_agent
 
     cases: list[dict] = yaml.safe_load(PROMPTS_FILE.read_text())
     client = Client()
@@ -101,7 +101,10 @@ def main() -> None:
     agent = build_agent()
 
     def target(inputs: dict) -> dict:
-        result = agent.invoke({"messages": [HumanMessage(content=inputs["prompt"])]})
+        result = agent.invoke(
+            {"messages": [HumanMessage(content=inputs["prompt"])]},
+            {"recursion_limit": RECURSION_LIMIT},
+        )
         return {"messages": result["messages"]}
 
     print("Running evaluation (sequential, 1 case at a time)...")

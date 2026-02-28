@@ -10,12 +10,19 @@ from nephila.agent.model_state import AgentState
 
 def response_node(state: AgentState) -> dict[str, Any]:
     """Extract the primary source_cis from tool results for traceability."""
-    source_cis: str | None = None
+    messages = state["messages"]
 
-    for msg in state["messages"]:
-        content = str(msg.content)
-        if isinstance(msg, ToolMessage) and "CIS " in content:
-            match = re.search(r"CIS (\d+)", content)
+    # Only inspect tool messages from the current turn (after the last HumanMessage)
+    last_human_idx = 0
+    for i, msg in reversed(list(enumerate(messages))):
+        if getattr(msg, "type", None) == "human":
+            last_human_idx = i
+            break
+
+    source_cis: str | None = None
+    for msg in messages[last_human_idx:]:
+        if isinstance(msg, ToolMessage) and "CIS " in str(msg.content):
+            match = re.search(r"CIS (\d+)", str(msg.content))
             if match:
                 source_cis = match.group(1)
                 break

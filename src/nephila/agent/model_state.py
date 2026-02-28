@@ -2,6 +2,8 @@ from typing import Any, NotRequired
 
 from langgraph.graph import MessagesState
 
+CRITICAL_LEVELS: frozenset[str] = frozenset({"contre-indication", "association déconseillée"})
+
 
 class AgentState(MessagesState):
     cis_codes: NotRequired[list[str]]

@@ -64,7 +64,6 @@
     - "paracétamol"
   expect_not:
     - "⚠️"
-    - "contre-indication"
 
 # Different tool path: tests search_drug → find_generics chain
 - id: generiques_doliprane

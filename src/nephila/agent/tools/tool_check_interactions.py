@@ -131,57 +131,8 @@ def check_interactions(substance_a: str, substance_b: str) -> str:
     if all_results:
         return "\n\n".join(all_results)
 
-    # Step 3: single-substance fallback — when pair search and vector both miss,
-    # return top interactions per substance so the LLM can evaluate relevance.
-    # This catches cases where the agent uses a DCI name but the DB uses a class name.
-    fallback_lines: list[str] = []
-    with engine.connect() as conn:
-        for label, orig, norm in [
-            (substance_a, orig_a, norm_a),
-            (substance_b, orig_b, norm_b),
-        ]:
-            rows = conn.execute(
-                text("""
-                    SELECT substance_a, substance_b, niveau_contrainte,
-                           nature_risque, conduite_a_tenir
-                    FROM silver.silver_ansm__interaction
-                    WHERE substance_a ILIKE :orig OR substance_b ILIKE :orig
-                       OR substance_a ILIKE :norm OR substance_b ILIKE :norm
-                    ORDER BY
-                        CASE niveau_contrainte
-                            WHEN 'Contre-indication' THEN 1
-                            WHEN 'Association déconseillée' THEN 2
-                            WHEN 'Précaution d''emploi' THEN 3
-                            ELSE 4
-                        END
-                    LIMIT 5
-                """),
-                {"orig": orig, "norm": norm},
-            ).fetchall()
-            for row in rows:
-                pair = frozenset([row[0], row[1]])
-                if pair not in seen:
-                    seen.add(pair)
-                    parts = [
-                        f"Interaction: {row[0]} + {row[1]}",
-                        f"Niveau de contrainte: {row[2]}",
-                    ]
-                    if row[3]:
-                        parts.append(f"Nature du risque: {row[3]}")
-                    if row[4]:
-                        parts.append(f"Conduite à tenir: {row[4]}")
-                    fallback_lines.append(
-                        f"[{row[2]}] {row[0]} + {row[1]}\n{'. '.join(parts)}"
-                    )
-
-    if fallback_lines:
-        header = (
-            f"No direct pair found for '{substance_a}' + '{substance_b}'. "
-            "Related interactions per substance (evaluate relevance):\n\n"
-        )
-        return header + "\n\n".join(fallback_lines)
-
     return (
         f"No interaction found between '{substance_a}' and '{substance_b}' in ANSM Thésaurus. "
+        "This does NOT mean the interaction does not exist — the search may have missed it. "
         "Try using the ANSM pharmacological class names (e.g. 'ANTIVITAMINES K', 'STATINES')."
     )

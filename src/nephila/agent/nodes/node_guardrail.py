@@ -8,9 +8,7 @@ from typing import Any
 
 from langchain_core.messages import ToolMessage
 
-from nephila.agent.model_state import AgentState
-
-CRITICAL_LEVELS: frozenset[str] = frozenset({"contre-indication", "association déconseillée"})
+from nephila.agent.model_state import CRITICAL_LEVELS, AgentState
 
 
 def guardrail_node(state: AgentState) -> dict[str, Any]:

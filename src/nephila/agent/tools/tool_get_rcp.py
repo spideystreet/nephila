@@ -12,6 +12,10 @@ def get_rcp(cis: str) -> str:
     Get the RCP (Résumé des Caractéristiques du Produit) and important safety info for a drug.
     Always cite this in responses. Never give medical advice without referencing the RCP.
     """
+    cis = cis.strip()
+    if not cis.isdigit():
+        return f"Invalid CIS code '{cis}'. Use search_drug to find the CIS code first."
+
     settings = PipelineSettings()
     engine = create_engine(settings.postgres_dsn)
 
