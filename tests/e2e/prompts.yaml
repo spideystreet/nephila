@@ -85,15 +85,15 @@
   expect_not:
     - "⚠️"
 
-# CI/AD interaction via substance names (no explicit class): SSRI + tramadol → serotonin syndrome
-# DB pair: INHIBITEURS SELECTIFS DE LA RECAPTURE DE LA SEROTONINE + TRAMADOL
+# "A prendre en compte" level: SSRI + tramadol — guardrail must NOT warn (lowest constraint)
+# DB pair: TRAMADOL + INHIBITEURS SÉLECTIFS DE LA RECAPTURE DE LA SÉROTONINE (A prendre en compte)
 - id: fluoxetine_tramadol
   prompt: >
     Un patient sous fluoxétine 20 mg pour une dépression souhaite prendre
     du tramadol pour des douleurs lombaires. Y a-t-il un risque ?
-  expect_warn: true
+  expect_warn: false
   expect_in:
-    - "⚠️"
     - "tramadol"
   expect_not:
+    - "⚠️"
     - "lithium"
