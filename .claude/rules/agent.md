@@ -28,7 +28,7 @@ START → [agent] ──► tool_calls? ──► [tools] ──► [agent] (loo
 |------|---------------|-------------|
 | `tool_search_drug.py` | `search_drug` | ChromaDB `idx_bdpm_medicament_v1` |
 | `tool_find_generics.py` | `find_generics` | Silver `silver_bdpm__generique` |
-| `tool_check_interactions.py` | `check_interactions` | ChromaDB `idx_ansm_interaction_v1` |
+| `tool_check_interactions.py` | `check_interactions` | Silver `silver_ansm__substance_class` + `silver_ansm__interaction` + ChromaDB `idx_ansm_interaction_v1` |
 | `tool_get_rcp.py` | `get_rcp` | Silver `silver_bdpm__info_importante` |
 
 ## Guardrails (non-negotiable)
@@ -45,7 +45,6 @@ START → [agent] ──► tool_calls? ──► [tools] ──► [agent] (loo
 | `messages` | `Annotated[list, add_messages]` | Full conversation (LangGraph managed) |
 | `cis_codes` | `list[str]` | CIS codes mentioned in the conversation |
 | `interactions_found` | `list[dict]` | Parsed from guardrail (`niveau_contrainte`, `detail`) |
-| `interactions_checked` | `bool` | Set to `True` by guardrail node |
 | `source_cis` | `str \| None` | First CIS extracted from ToolMessages |
 
 ## LangGraph Studio

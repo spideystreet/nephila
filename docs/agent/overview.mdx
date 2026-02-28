@@ -32,7 +32,7 @@ Deux arêtes conditionnelles pilotent le flux :
 
 ## LLM et outils
 
-Le LLM est configuré via **OpenRouter** (modèle configurable). Il est lié aux 4 outils disponibles via `llm.bind_tools(TOOLS)`.
+Le LLM est configuré via **OpenRouter** (modèle configurable). Il est lié aux 4 outils disponibles via `llm.bind_tools(TOOLS, parallel_tool_calls=False)` — l'exécution séquentielle garantit que le guardrail inspecte tous les résultats.
 
 ```python
 TOOLS = [search_drug, find_generics, check_interactions, get_rcp]
@@ -43,17 +43,17 @@ Le prompt système impose des règles non négociables :
 - Ne jamais donner de conseil médical direct
 - Toujours inclure le code CIS
 - Rapporter chaque interaction avec son niveau de contrainte ANSM
+- Ne jamais compléter avec des connaissances pharmacologiques hors outil si `check_interactions` ne trouve rien
 
 ## État de l'agent (`AgentState`)
 
-L'état est défini dans `agent/model_state.py` (Pydantic + `add_messages`) :
+L'état est défini dans `agent/model_state.py` (`MessagesState` TypedDict + `add_messages`) :
 
 | Champ | Type | Rôle |
 |-------|------|------|
 | `messages` | `Annotated[list, add_messages]` | Conversation complète (géré par LangGraph) |
 | `cis_codes` | `list[str]` | Codes CIS mentionnés dans la conversation |
 | `interactions_found` | `list[dict]` | Extraites par le guardrail (`niveau_contrainte`, `detail`) |
-| `interactions_checked` | `bool` | Mis à `True` par le nœud guardrail |
 | `source_cis` | `str \| None` | Premier CIS extrait des ToolMessages |
 
 ## Utilisation

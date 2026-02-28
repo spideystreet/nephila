@@ -5,7 +5,7 @@ description: "The four LangChain tools available to the Nephila agent"
 
 ## Overview
 
-The agent has access to four tools, each backed by a specific data source. Tools are defined in `agent/tools/` and bound to the LLM via `llm.bind_tools(TOOLS)`.
+The agent has access to four tools, each backed by a specific data source. Tools are defined in `agent/tools/` and bound to the LLM via `llm.bind_tools(TOOLS, parallel_tool_calls=False)` — sequential execution ensures the guardrail can inspect all tool results.
 
 ## Tool Reference
 
@@ -55,7 +55,7 @@ Dual-strategy lookup against the ANSM interaction data with **automatic substanc
 When no interaction is found, the tool returns a prescriptive message instructing the LLM to report insufficient data rather than hallucinate.
 
 <Warning>
-This tool **must** be called before any drug recommendation. The guardrail node enforces this by checking `interactions_checked` in the agent state.
+This tool **must** be called before any drug recommendation. The guardrail node enforces this by scanning ToolMessages from the current turn for interaction patterns.
 </Warning>
 
 ## `get_rcp`
@@ -75,9 +75,9 @@ User: "Interactions entre warfarine et paracétamol ?"
 
 agent → search_drug("warfarine")        → cis: 60013674
 agent → search_drug("paracétamol")      → cis: 60013674
-agent → check_interactions("warfarine + paracétamol")
+agent → check_interactions("warfarine", "paracétamol")
         → [Précaution d'emploi] WARFARINE + PARACETAMOL: risque d'augmentation des INR
 agent → get_rcp("60013674")             → https://...
-agent → guardrail (interactions_checked=True)
+agent → guardrail (interactions_found=[...])
 agent → response (source_cis="60013674")
 ```

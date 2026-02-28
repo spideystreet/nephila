@@ -13,9 +13,9 @@ The guardrail system is **non-negotiable**: it runs before every final LLM respo
 
 ### What it does
 
-1. Scans **all** `ToolMessage` objects in the conversation history
+1. Scans `ToolMessage` objects **from the current turn only** (after the last `HumanMessage`, via `last_human_message_idx()`)
 2. Extracts lines matching the pattern `[LEVEL] SubstanceA + SubstanceB`
-3. Populates `interactions_found` and sets `interactions_checked = True` in `AgentState`
+3. Deduplicates mirror pairs (A+B == B+A) and populates `interactions_found` in `AgentState`
 
 ```python
 # Pattern matched in ToolMessage content
@@ -29,8 +29,7 @@ r"\[([^\]]+)\]\s+(.+?)(?:\n|$)"
 {
     "interactions_found": [
         {"niveau_contrainte": "Précaution d'emploi", "detail": "WARFARINE + PARACETAMOL"}
-    ],
-    "interactions_checked": True
+    ]
 }
 ```
 
@@ -39,10 +38,11 @@ r"\[([^\]]+)\]\s+(.+?)(?:\n|$)"
 After the guardrail node, a conditional edge routes to either `warn` or `response`:
 
 ```python
+# CRITICAL_LEVELS defined in model_state.py and imported by both guardrail and warn nodes
 CRITICAL_LEVELS = frozenset({"contre-indication", "association déconseillée"})
 
 def should_warn(state: AgentState) -> str:
-    for interaction in state.interactions_found:
+    for interaction in state.get("interactions_found", []):
         if interaction.get("niveau_contrainte", "").lower() in CRITICAL_LEVELS:
             return "warn"
     return "response"
@@ -59,11 +59,13 @@ def should_warn(state: AgentState) -> str:
 
 `agent/nodes/node_warn.py` — fires when a critical interaction is detected.
 
-The warn node does **not** let the LLM produce a free-form answer. It outputs a structured blocking message that:
-- Names the critical interaction(s) found
-- States the constraint level (Contre-indication / Association déconseillée)
-- Directs the user to consult a healthcare professional
-- References the RCP
+The warn node **prepends** a concise inline warning to the agent's response. It replaces the last AI message with a prefixed version:
+
+```
+⚠️ Contre-indication — SUBSTANCE_A + SUBSTANCE_B · Association déconseillée — SUBSTANCE_C + SUBSTANCE_D
+
+[original agent response]
+```
 
 ## Response Node
 
@@ -85,7 +87,7 @@ Every final response — whether from `response` or `warn` — must have `source
 
 | Rule | Enforcement |
 |------|-------------|
-| `check_interactions` called before response | System prompt + `interactions_checked` flag |
+| `check_interactions` called before response | System prompt + guardrail ToolMessage scan |
 | Critical interactions block the response | `should_warn` conditional edge |
 | Every response cites the RCP | System prompt + `response` node |
 | Every response has `source_cis` | `response` and `warn` nodes |
