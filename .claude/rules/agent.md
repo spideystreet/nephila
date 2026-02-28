@@ -31,6 +31,9 @@ START → [agent] ──► tool_calls? ──► [tools] ──► [agent] (loo
 | `tool_check_interactions.py` | `check_interactions` | Silver `silver_ansm__substance_class` + `silver_ansm__interaction` + ChromaDB `idx_ansm_interaction_v1` |
 | `tool_get_rcp.py` | `get_rcp` | Silver `silver_bdpm__info_importante` |
 
+SQL queries are centralized in `agent/queries.py` (lazy singleton engine, Pydantic-validated returns).
+Tools delegate to `queries.*` for DB access and handle formatting + ChromaDB themselves.
+
 ## Guardrails (non-negotiable)
 
 - **No direct advice**: every response must reference the RCP (`silver_bdpm__info_importante`)

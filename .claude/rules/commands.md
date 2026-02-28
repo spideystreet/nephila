@@ -31,9 +31,12 @@ uv run dotenv -f .env run -- uv run langgraph dev    # UI at smith.langchain.com
 
 ## Quality
 ```bash
-uv run ruff check src/
-uv run ruff format src/
+uv run ruff check src/ scripts/ tests/
+uv run ruff format --check src/ scripts/ tests/
 uv run mypy src/
+uv run sqlfluff lint dbt/models/ dbt/tests/ --config dbt/.sqlfluff
+
+# Or use /lint to run all linters at once
 
 # Tests — unit only (no Docker needed)
 uv run pytest -m "not integration"
