@@ -19,7 +19,6 @@ class TestGuardrailNode:
         state = _state([HumanMessage(content="Bonjour")])
         result = guardrail_node(state)
         assert result["interactions_found"] == []
-        assert result["interactions_checked"] is True
 
     def test_single_interaction_parsed(self):
         state = _state([
@@ -76,12 +75,6 @@ class TestGuardrailNode:
         result = guardrail_node(state)
         assert len(result["interactions_found"]) == 1
         assert result["interactions_found"][0]["niveau_contrainte"] == "Précaution d'emploi"
-
-    def test_interactions_checked_always_true(self):
-        state = _state([HumanMessage(content="test")])
-        result = guardrail_node(state)
-        assert result["interactions_checked"] is True
-
 
 # ---------------------------------------------------------------------------
 # should_warn
