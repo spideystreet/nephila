@@ -24,6 +24,12 @@ EOF
 Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
 Scopes: `agent`, `pipeline`, `dbt`, `eval`, `ci`
 
+## GitHub operations
+
+- **Always use GitHub MCP tools** (`mcp__github__*`) for remote GitHub operations: create PRs, list issues, add comments, reviews, etc.
+- Use `git` CLI only for local operations (commit, push, diff, log, status)
+- Fallback to `gh` CLI only if MCP is unavailable
+
 ## Pull Requests
 
 - **Author**: spicode-bot — **Reviewer**: spideystreet (always assign)
