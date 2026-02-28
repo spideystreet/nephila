@@ -19,5 +19,7 @@ sources:
         description: "Important safety information and RCP links (CIS_InfoImportantes.txt)"
       - name: ansm_interaction
         description: "Drug interactions parsed from ANSM Thésaurus PDF"
+      - name: ansm_substance_class
+        description: "Substance-to-class mappings parsed from ANSM Thésaurus PDF"
       - name: open_medic
         description: "Drug reimbursement data by CIP13 from CNAM Open Medic (annual, ameli.fr)"
