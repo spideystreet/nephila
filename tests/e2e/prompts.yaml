@@ -112,3 +112,38 @@
   expect_not:
     - "⚠️"
     - "lithium"
+
+# Association déconseillée: AINS increase hemorrhagic risk with oral anticoagulants (GI mucosal damage)
+# DB pair: ANTI-INFLAMMATOIRES NON STÉROÏDIENS + ANTICOAGULANTS ORAUX (AD)
+# Class resolution required: naproxene → ANTI-INFLAMMATOIRES NON STÉROÏDIENS
+#                            apixaban  → ANTICOAGULANTS ORAUX
+- id: naproxene_apixaban
+  prompt: >
+    Une patiente de 72 ans est sous apixaban 5 mg deux fois par jour pour une fibrillation
+    auriculaire. Elle consulte pour des douleurs articulaires et demande si elle peut prendre
+    du naproxène en automédication. Quel est le risque ?
+  expect_warn: true
+  expect_in:
+    - "⚠️"
+    - "apixaban"
+  expect_not:
+    - "méthotrexate"
+    - "ciclosporine"
+
+# Précaution d'emploi: beta-blockers mask autonomic symptoms of hypoglycemia (pharmacodynamic)
+# DB pair: BÊTA-BLOQUANTS (SAUF ESMOLOL) (Y COMPRIS COLLYRES) + SULFAMIDES HYPOGLYCÉMIANTS (PE)
+# Class resolution required: atenolol      → BÊTA-BLOQUANTS (SAUF ESMOLOL) (Y COMPRIS COLLYRES)
+#                            glibenclamide → SULFAMIDES HYPOGLYCÉMIANTS
+# Mechanism distinct from existing PE cases (not CYP, not serotonin): autonomic blockade
+- id: atenolol_glibenclamide
+  prompt: >
+    Un patient diabétique de type 2 traité par glibenclamide 5 mg vient de se voir prescrire
+    de l'aténolol 50 mg pour de l'hypertension artérielle. Son médecin s'interroge sur
+    l'impact de cette association sur la surveillance de la glycémie.
+  expect_warn: false
+  expect_in:
+    - "glibenclamide"
+    - "atenolol"
+  expect_not:
+    - "⚠️"
+    - "warfarine"
