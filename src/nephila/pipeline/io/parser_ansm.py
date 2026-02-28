@@ -28,6 +28,8 @@ _CONSTRAINT_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 ]
 
 _SUBSTANCE_A_RE = re.compile(r"^[A-ZÀÁÂÄÇÉÈÊËÎÏÔÙÛÜ\s,\'\-/\(\)\.0-9]{3,80}$")
+_CLASS_MEMBERS_RE = re.compile(r"^\((.+,.+)\)$")
+_VOIR_AUSSI_RE = re.compile(r"^[Vv]oir\s+aussi\s*:\s*(.+)$")
 
 
 def _detect_constraint(text: str) -> str | None:
@@ -119,5 +121,66 @@ def parse_thesaurus_pdf(pdf_path: Path) -> list[dict[str, Any]]:
 
     log.info(
         f"[bronze] ANSM parser — {pages_processed} pages, {len(records)} interactions extracted"
+    )
+    return records
+
+
+def parse_thesaurus_classes(pdf_path: Path) -> list[dict[str, str]]:
+    """
+    Parse the ANSM Thésaurus PDF and extract substance→class mappings.
+
+    Two sources:
+    1. Parenthetical member lists: ``(warfarine, acenocoumarol, ...)`` right after
+       an all-caps class header → one record per member.
+    2. "Voir aussi" lines: ``Voir aussi : antiagrégants plaquettaires`` after a
+       substance header → one record per referenced class (split on `` - ``).
+    """
+    log = get_dagster_logger()
+    records: list[dict[str, str]] = []
+    current_header: str | None = None
+
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            text = page.extract_text() or ""
+            for raw_line in text.splitlines():
+                line = raw_line.strip()
+                if not line:
+                    continue
+
+                # Parenthetical member list: (substance1, substance2, ...)
+                m_members = _CLASS_MEMBERS_RE.match(line)
+                if m_members and current_header:
+                    members = [m.strip() for m in m_members.group(1).split(",") if m.strip()]
+                    for member in members:
+                        records.append(
+                            {
+                                "substance_dci": member.lower(),
+                                "classe_ansm": current_header,
+                                "source": "parenthetical",
+                            }
+                        )
+                    continue
+
+                # Voir aussi line
+                m_voir = _VOIR_AUSSI_RE.match(line)
+                if m_voir and current_header:
+                    classes_text = m_voir.group(1).strip()
+                    classes = [c.strip() for c in classes_text.split(" - ") if c.strip()]
+                    for cls in classes:
+                        records.append(
+                            {
+                                "substance_dci": current_header.lower(),
+                                "classe_ansm": cls.upper(),
+                                "source": "voir_aussi",
+                            }
+                        )
+                    continue
+
+                # Track current header (all-caps substance/class)
+                if _is_substance_a(line) and not line.startswith("("):
+                    current_header = line
+
+    log.info(
+        f"[bronze] ANSM class parser — {len(records)} substance-class mappings extracted"
     )
     return records
