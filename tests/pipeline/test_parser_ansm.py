@@ -1,7 +1,15 @@
 """Unit tests for the ANSM Thésaurus PDF parser heuristics."""
+from pathlib import Path
+
 import pytest
 
-from nephila.pipeline.io.parser_ansm import _detect_constraint, _is_substance_a
+from nephila.pipeline.io.parser_ansm import (
+    _CLASS_MEMBERS_RE,
+    _VOIR_AUSSI_RE,
+    _detect_constraint,
+    _is_substance_a,
+    parse_thesaurus_classes,
+)
 
 
 class TestIsSubstanceA:
@@ -78,3 +86,62 @@ class TestDetectConstraint:
 
     def test_no_constraint(self):
         assert _detect_constraint("texte descriptif sans niveau") is None
+
+
+class TestClassMembersRegex:
+    def test_simple_list(self):
+        m = _CLASS_MEMBERS_RE.match("(warfarine, acenocoumarol, fluindione)")
+        assert m is not None
+        assert "warfarine" in m.group(1)
+
+    def test_nested_parens(self):
+        """Lines like '(acetazolamide, sodium (bicarbonate de), trometamol)' must match."""
+        m = _CLASS_MEMBERS_RE.match("(acetazolamide, sodium (bicarbonate de), trometamol)")
+        assert m is not None
+        assert "sodium (bicarbonate de)" in m.group(1)
+
+    def test_no_comma_no_match(self):
+        """Single-element parens are not member lists."""
+        assert _CLASS_MEMBERS_RE.match("(voir aussi)") is None
+
+    def test_non_paren_line(self):
+        assert _CLASS_MEMBERS_RE.match("warfarine, acenocoumarol") is None
+
+
+class TestVoirAussiRegex:
+    def test_simple(self):
+        m = _VOIR_AUSSI_RE.match("Voir aussi : antiagrégants plaquettaires")
+        assert m is not None
+        assert m.group(1) == "antiagrégants plaquettaires"
+
+    def test_multiple_classes(self):
+        m = _VOIR_AUSSI_RE.match("Voir aussi : bisphosphonates - médicaments néphrotoxiques")
+        assert m is not None
+        assert "bisphosphonates" in m.group(1)
+        assert "médicaments néphrotoxiques" in m.group(1)
+
+    def test_lowercase_voir(self):
+        m = _VOIR_AUSSI_RE.match("voir aussi : folates")
+        assert m is not None
+
+    def test_no_match_on_random_text(self):
+        assert _VOIR_AUSSI_RE.match("risque de saignement") is None
+
+
+@pytest.mark.integration
+class TestParseThesaurusClasses:
+    def test_returns_nonempty(self):
+        records = parse_thesaurus_classes(Path("data/bronze/ansm/thesaurus.pdf"))
+        assert len(records) > 800
+
+    def test_warfarine_mapped_to_anticoagulants(self):
+        records = parse_thesaurus_classes(Path("data/bronze/ansm/thesaurus.pdf"))
+        warfarine_classes = {
+            r["classe_ansm"] for r in records if r["substance_dci"] == "warfarine"
+        }
+        assert "ANTICOAGULANTS ORAUX" in warfarine_classes
+
+    def test_both_sources_present(self):
+        records = parse_thesaurus_classes(Path("data/bronze/ansm/thesaurus.pdf"))
+        sources = {r["source"] for r in records}
+        assert sources == {"parenthetical", "voir_aussi"}
