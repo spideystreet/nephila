@@ -7,9 +7,13 @@ from dagster_dbt import DbtCliResource, dbt_assets
 from sqlalchemy import create_engine
 
 from nephila.pipeline.config_pipeline import PipelineSettings
-from nephila.pipeline.io.loader_bdpm import load_bdpm_files_to_raw, load_interactions_to_raw
+from nephila.pipeline.io.loader_bdpm import (
+    load_bdpm_files_to_raw,
+    load_interactions_to_raw,
+    load_substance_classes_to_raw,
+)
 from nephila.pipeline.io.loader_open_medic import load_open_medic_to_raw
-from nephila.pipeline.io.parser_ansm import parse_thesaurus_pdf
+from nephila.pipeline.io.parser_ansm import parse_thesaurus_classes, parse_thesaurus_pdf
 
 DBT_MANIFEST = Path("dbt/target/manifest.json")
 
@@ -46,6 +50,22 @@ def ansm_to_raw(context: AssetExecutionContext) -> None:
     engine = create_engine(settings.postgres_dsn)
     count = load_interactions_to_raw(records, engine)
     context.add_output_metadata({"interactions_loaded": count})
+
+
+@asset(
+    key=AssetKey(["raw", "ansm_substance_class"]),
+    group_name="silver",
+    deps=["ansm_thesaurus_raw"],
+)
+def ansm_classes_to_raw(context: AssetExecutionContext) -> None:
+    """Parse the ANSM Thésaurus PDF and load substance-class mappings."""
+    settings = PipelineSettings()
+    pdf_path = settings.bronze_dir / "ansm" / "thesaurus.pdf"
+    records = parse_thesaurus_classes(pdf_path)
+
+    engine = create_engine(settings.postgres_dsn)
+    count = load_substance_classes_to_raw(records, engine)
+    context.add_output_metadata({"mappings_loaded": count})
 
 
 @asset(

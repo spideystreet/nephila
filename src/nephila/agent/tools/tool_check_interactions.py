@@ -147,6 +147,9 @@ def check_interactions(substance_a: str, substance_b: str) -> str:
     metas = (vector_results["metadatas"] or [[]])[0]
     for doc, meta in zip(docs, metas):
         sa, sb = str(meta["substance_a"]), str(meta["substance_b"])
+        # Require lexical overlap: both returned substances must relate to a query substance.
+        # This prevents false positives where a semantically similar but different drug
+        # (e.g. flucloxacilline for amoxicilline) contaminates the result.
         if not (
             _substance_matches_query(sa, substance_a, substance_b)
             and _substance_matches_query(sb, substance_a, substance_b)
