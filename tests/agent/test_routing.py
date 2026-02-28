@@ -17,7 +17,14 @@ class TestRouting:
     def test_routes_to_tools_when_tool_calls_present(self):
         msg = AIMessage(
             content="",
-            tool_calls=[{"id": "1", "name": "search_drug", "args": {"query": "aspirine"}, "type": "tool_call"}],
+            tool_calls=[
+                {
+                    "id": "1",
+                    "name": "search_drug",
+                    "args": {"query": "aspirine"},
+                    "type": "tool_call",
+                }
+            ],
         )
         assert routing(_state([msg])) == "tools"
 

@@ -1,4 +1,5 @@
 """Unit tests for warn_node() — no external dependencies."""
+
 from langchain_core.messages import AIMessage, HumanMessage
 
 from nephila.agent.nodes.node_warn import warn_node
@@ -8,7 +9,10 @@ def _state(messages: list, interactions: list) -> dict:
     return {"messages": messages, "interactions_found": interactions}
 
 
-CRITICAL_INTERACTION = {"niveau_contrainte": "Contre-indication", "detail": "AMIODARONE + WARFARINE"}
+CRITICAL_INTERACTION = {
+    "niveau_contrainte": "Contre-indication",
+    "detail": "AMIODARONE + WARFARINE",
+}
 DECONSEILLE_INTERACTION = {
     "niveau_contrainte": "Association déconseillée",
     "detail": "AMIODARONE + FLECAINIDE",

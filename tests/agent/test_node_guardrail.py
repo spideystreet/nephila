@@ -1,6 +1,6 @@
 """Unit tests for guardrail_node() and should_warn() — no external dependencies."""
-import pytest
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+
+from langchain_core.messages import HumanMessage, ToolMessage
 
 from nephila.agent.nodes.node_guardrail import guardrail_node, should_warn
 
@@ -21,13 +21,15 @@ class TestGuardrailNode:
         assert result["interactions_found"] == []
 
     def test_single_interaction_parsed(self):
-        state = _state([
-            HumanMessage(content="interaction?"),
-            ToolMessage(
-                content="[Contre-indication] AMIODARONE + WARFARINE",
-                tool_call_id="t1",
-            ),
-        ])
+        state = _state(
+            [
+                HumanMessage(content="interaction?"),
+                ToolMessage(
+                    content="[Contre-indication] AMIODARONE + WARFARINE",
+                    tool_call_id="t1",
+                ),
+            ]
+        )
         result = guardrail_node(state)
         assert len(result["interactions_found"]) == 1
         assert result["interactions_found"][0]["niveau_contrainte"] == "Contre-indication"
@@ -38,10 +40,12 @@ class TestGuardrailNode:
             "[Contre-indication] AMIODARONE + WARFARINE\n"
             "[Association déconseillée] AMIODARONE + FLECAINIDE\n"
         )
-        state = _state([
-            HumanMessage(content="interaction?"),
-            ToolMessage(content=content, tool_call_id="t1"),
-        ])
+        state = _state(
+            [
+                HumanMessage(content="interaction?"),
+                ToolMessage(content=content, tool_call_id="t1"),
+            ]
+        )
         result = guardrail_node(state)
         assert len(result["interactions_found"]) == 2
 
@@ -51,30 +55,35 @@ class TestGuardrailNode:
             "[Contre-indication] AMIODARONE + WARFARINE\n"
             "[Contre-indication] WARFARINE + AMIODARONE\n"
         )
-        state = _state([
-            HumanMessage(content="interaction?"),
-            ToolMessage(content=content, tool_call_id="t1"),
-        ])
+        state = _state(
+            [
+                HumanMessage(content="interaction?"),
+                ToolMessage(content=content, tool_call_id="t1"),
+            ]
+        )
         result = guardrail_node(state)
         assert len(result["interactions_found"]) == 1
 
     def test_only_current_turn_inspected(self):
         """Tool messages from a previous turn (before last HumanMessage) are ignored."""
-        state = _state([
-            HumanMessage(content="first question"),
-            ToolMessage(
-                content="[Contre-indication] OLD_A + OLD_B",
-                tool_call_id="old",
-            ),
-            HumanMessage(content="new question"),
-            ToolMessage(
-                content="[Précaution d'emploi] NEW_A + NEW_B",
-                tool_call_id="new",
-            ),
-        ])
+        state = _state(
+            [
+                HumanMessage(content="first question"),
+                ToolMessage(
+                    content="[Contre-indication] OLD_A + OLD_B",
+                    tool_call_id="old",
+                ),
+                HumanMessage(content="new question"),
+                ToolMessage(
+                    content="[Précaution d'emploi] NEW_A + NEW_B",
+                    tool_call_id="new",
+                ),
+            ]
+        )
         result = guardrail_node(state)
         assert len(result["interactions_found"]) == 1
         assert result["interactions_found"][0]["niveau_contrainte"] == "Précaution d'emploi"
+
 
 # ---------------------------------------------------------------------------
 # should_warn
@@ -88,18 +97,14 @@ class TestShouldWarn:
     def test_precaution_emploi_returns_response(self):
         state = {
             "messages": [],
-            "interactions_found": [
-                {"niveau_contrainte": "Précaution d'emploi", "detail": "A + B"}
-            ],
+            "interactions_found": [{"niveau_contrainte": "Précaution d'emploi", "detail": "A + B"}],
         }
         assert should_warn(state) == "response"
 
     def test_contre_indication_returns_warn(self):
         state = {
             "messages": [],
-            "interactions_found": [
-                {"niveau_contrainte": "Contre-indication", "detail": "A + B"}
-            ],
+            "interactions_found": [{"niveau_contrainte": "Contre-indication", "detail": "A + B"}],
         }
         assert should_warn(state) == "warn"
 
@@ -116,9 +121,7 @@ class TestShouldWarn:
         """Case-insensitive comparison must still trigger warn."""
         state = {
             "messages": [],
-            "interactions_found": [
-                {"niveau_contrainte": "CONTRE-INDICATION", "detail": "A + B"}
-            ],
+            "interactions_found": [{"niveau_contrainte": "CONTRE-INDICATION", "detail": "A + B"}],
         }
         assert should_warn(state) == "warn"
 

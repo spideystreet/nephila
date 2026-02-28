@@ -1,4 +1,5 @@
 """Unit tests for the ANSM Thésaurus PDF parser heuristics."""
+
 from pathlib import Path
 
 import pytest
@@ -62,7 +63,10 @@ class TestDetectConstraint:
         assert _detect_constraint("CI absolue") == "Contre-indication"
 
     def test_association_deconseillee(self):
-        assert _detect_constraint("association déconseillée en raison du risque") == "Association déconseillée"
+        assert (
+            _detect_constraint("association déconseillée en raison du risque")
+            == "Association déconseillée"
+        )
 
     def test_asdec_alias(self):
         assert _detect_constraint("ASDEC — risque de torsades") == "Association déconseillée"
@@ -136,9 +140,7 @@ class TestParseThesaurusClasses:
 
     def test_warfarine_mapped_to_anticoagulants(self):
         records = parse_thesaurus_classes(Path("data/bronze/ansm/thesaurus.pdf"))
-        warfarine_classes = {
-            r["classe_ansm"] for r in records if r["substance_dci"] == "warfarine"
-        }
+        warfarine_classes = {r["classe_ansm"] for r in records if r["substance_dci"] == "warfarine"}
         assert "ANTICOAGULANTS ORAUX" in warfarine_classes
 
     def test_both_sources_present(self):
