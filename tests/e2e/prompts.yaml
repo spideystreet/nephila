@@ -74,3 +74,26 @@
     - "paracétamol"
   expect_not:
     - "⚠️"
+
+# RCP tool path: tests search_drug → get_rcp chain (single-drug, no interaction partner)
+- id: rcp_aspirine
+  prompt: >
+    Quelles sont les contre-indications de l'aspirine 500 mg ?
+  expect_warn: false
+  expect_in:
+    - "aspirine"
+  expect_not:
+    - "⚠️"
+
+# CI/AD interaction via substance names (no explicit class): SSRI + tramadol → serotonin syndrome
+# DB pair: INHIBITEURS SELECTIFS DE LA RECAPTURE DE LA SEROTONINE + TRAMADOL
+- id: fluoxetine_tramadol
+  prompt: >
+    Un patient sous fluoxétine 20 mg pour une dépression souhaite prendre
+    du tramadol pour des douleurs lombaires. Y a-t-il un risque ?
+  expect_warn: true
+  expect_in:
+    - "⚠️"
+    - "tramadol"
+  expect_not:
+    - "lithium"
