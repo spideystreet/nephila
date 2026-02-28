@@ -49,7 +49,7 @@ Output a single formatted dashboard:
 ```
 ## PR #<number>: <title>
 
-**State**: <open/closed/merged> | **Branch**: <head> → <base> | **Author**: @<login>
+**State**: <open/closed/merged> | **Mergeable**: <mergeable_state> | **Branch**: <head> → <base> | **Author**: @<login>
 
 ### GitHub Actions
 
@@ -80,6 +80,12 @@ Output a single formatted dashboard:
 ```
 
 If a section has no items, show "None" instead of the table/list.
+
+**Merge conflicts**: Check `mergeable` and `mergeable_state` from `get_pull_request`. If `mergeable` is `false` or `mergeable_state` is `"dirty"`, display a prominent warning:
+
+```
+⚠ **CONFLICTS** — This branch has conflicts with `main` that must be resolved before merging.
+```
 
 If CI failed, add a **Failure Logs** section after GitHub Actions:
 
