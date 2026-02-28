@@ -67,7 +67,6 @@ If no docs need updating, report: "All docs are up to date."
 
 ## Rules
 
-- Never add new doc files — only update existing ones
 - Never rewrite entire sections — make minimal, targeted edits
 - Keep all docs in English (same as code comments)
 - Do not touch `docs/introduction.mdx` or `docs/quickstart.mdx` unless the overall architecture changed
