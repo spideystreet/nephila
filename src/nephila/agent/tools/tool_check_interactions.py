@@ -6,7 +6,7 @@ import unicodedata
 
 import chromadb
 from langchain_core.tools import tool
-from sqlalchemy import create_engine, text
+from sqlalchemy import Engine, create_engine, text
 
 from nephila.pipeline.config_pipeline import PipelineSettings
 from nephila.pipeline.io.embedder_local import get_embedding_function
@@ -18,6 +18,28 @@ def _normalize(name: str) -> str:
     """Lowercase and strip accents for lexical matching."""
     nfkd = unicodedata.normalize("NFKD", name)
     return nfkd.encode("ascii", "ignore").decode("ascii").lower()
+
+
+def _resolve_ansm_names(substance: str, engine: "Engine") -> list[str]:
+    """Resolve a substance DCI to its ANSM class names via the mapping table.
+
+    Returns the list of matching classe_ansm values, or [substance] as fallback.
+    """
+    norm = _normalize(substance)
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(
+                text(
+                    "SELECT classe_ansm FROM silver.silver_ansm__substance_class "
+                    "WHERE substance_dci = :norm"
+                ),
+                {"norm": norm},
+            ).fetchall()
+        if rows:
+            return [row[0] for row in rows]
+    except Exception:
+        logger.warning("Failed to resolve ANSM class for '%s'", substance, exc_info=True)
+    return [substance]
 
 
 def _substance_matches_query(substance: str, query_a: str, query_b: str) -> bool:
@@ -33,38 +55,45 @@ def _substance_matches_query(substance: str, query_a: str, query_b: str) -> bool
 @tool
 def check_interactions(substance_a: str, substance_b: str) -> str:
     """
-    Check ANSM Thésaurus for the interaction between two substances or drug classes.
+    Check ANSM Thésaurus for the interaction between two substances.
 
-    The ANSM Thésaurus indexes interactions by pharmacological class names, not individual
-    drug names. This tool automatically discovers the correct ANSM class name for each
-    substance via semantic search, so you can pass individual drug names directly
-    (e.g. 'warfarine', 'aspirine', 'ciprofloxacine').
+    Pass individual DCI names — the tool resolves them automatically to ANSM
+    pharmacological class names when a mapping exists.
 
     Returns the interaction with its constraint level.
-    ALWAYS call this for every drug pair before any recommendation.
+    ALWAYS call this before any drug recommendation.
     Constraint levels: Contre-indication > Association déconseillée
     > Précaution d'emploi > A prendre en compte
     """
     settings = PipelineSettings()
     engine = create_engine(settings.postgres_dsn)
 
+    # Step 0: resolve substance DCI → ANSM class names
+    names_a = _resolve_ansm_names(substance_a, engine)
+    names_b = _resolve_ansm_names(substance_b, engine)
+
+    # Step 1: SQL ILIKE — search all combinations of resolved names + originals
+    all_names_a = list({substance_a, *names_a})
+    all_names_b = list({substance_b, *names_b})
+
     seen: set[frozenset[str]] = set()
     sql_lines: list[str] = []
 
-    # Step 1: SQL ILIKE — search with both original and normalized (unaccented) forms
+    # Build ILIKE conditions for all (a × b) name combinations
+    # Use both original (accented) and normalized (unaccented) forms since
+    # ILIKE is case-insensitive but accent-sensitive in PostgreSQL
     conditions: list[str] = []
     params: dict[str, str] = {}
     idx = 0
-    for va, vb in [
-        (substance_a, substance_b),
-        (_normalize(substance_a), _normalize(substance_b)),
-    ]:
-        pa, pb = f"a{idx}", f"b{idx}"
-        params[pa] = f"%{va}%"
-        params[pb] = f"%{vb}%"
-        conditions.append(f"(substance_a ILIKE :{pa} AND substance_b ILIKE :{pb})")
-        conditions.append(f"(substance_a ILIKE :{pb} AND substance_b ILIKE :{pa})")
-        idx += 1
+    for na in all_names_a:
+        for nb in all_names_b:
+            for va, vb in [(na, nb), (_normalize(na), _normalize(nb))]:
+                pa, pb = f"a{idx}", f"b{idx}"
+                params[pa] = f"%{va}%"
+                params[pb] = f"%{vb}%"
+                conditions.append(f"(substance_a ILIKE :{pa} AND substance_b ILIKE :{pb})")
+                conditions.append(f"(substance_a ILIKE :{pb} AND substance_b ILIKE :{pa})")
+                idx += 1
 
     where_clause = " OR ".join(conditions)
     with engine.connect() as conn:
@@ -118,9 +147,6 @@ def check_interactions(substance_a: str, substance_b: str) -> str:
     metas = (vector_results["metadatas"] or [[]])[0]
     for doc, meta in zip(docs, metas):
         sa, sb = str(meta["substance_a"]), str(meta["substance_b"])
-        # Require lexical overlap: both returned substances must relate to a query substance.
-        # This prevents false positives where a semantically similar but different drug
-        # (e.g. flucloxacilline for amoxicilline) contaminates the result.
         if not (
             _substance_matches_query(sa, substance_a, substance_b)
             and _substance_matches_query(sb, substance_a, substance_b)
@@ -136,7 +162,7 @@ def check_interactions(substance_a: str, substance_b: str) -> str:
         return "\n\n".join(all_results)
 
     return (
-        f"No interaction found between '{substance_a}' and '{substance_b}' in ANSM Thésaurus. "
-        "This does NOT mean the interaction does not exist — the search may have missed it. "
-        "Try using the ANSM pharmacological class names (e.g. 'ANTIVITAMINES K', 'STATINES')."
+        f"Aucune interaction trouvée dans le thésaurus ANSM entre '{substance_a}' "
+        f"et '{substance_b}'. "
+        "Répondre uniquement : données ANSM insuffisantes pour conclure."
     )

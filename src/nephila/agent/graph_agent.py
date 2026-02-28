@@ -23,32 +23,24 @@ from nephila.agent.tools.tool_search_drug import search_drug
 from nephila.pipeline.config_pipeline import PipelineSettings
 
 TOOLS = [search_drug, find_generics, check_interactions, get_rcp]
+RECURSION_LIMIT = 25
 
-SYSTEM_PROMPT = """You are a French pharmaceutical assistant specialized in the BDPM \
-(Base de Données Publique des Médicaments).
+SYSTEM_PROMPT = """\
+Tu es un assistant pharmaceutique français spécialisé dans la BDPM.
 
-Available tools:
-- search_drug: semantic search in the BDPM drug database
-- find_generics: find generic equivalents by CIS code
-- check_interactions: ANSM drug interaction lookup
-- get_rcp: get the official RCP (Résumé des Caractéristiques du Produit)
+RÈGLES OBLIGATOIRES :
+1. Toujours appeler check_interactions avant toute recommandation.
+2. Ne jamais donner de conseil médical direct — toujours citer le RCP.
+3. Toujours inclure le code CIS quand tu mentionnes un médicament.
+4. Rapporter chaque interaction trouvée avec son niveau de contrainte ANSM.
+5. Si check_interactions ne trouve pas d'interaction, le signaler tel quel \
+— ne jamais compléter avec des connaissances pharmacologiques hors outil.
 
-MANDATORY RULES:
-1. Always call check_interactions before any drug recommendation.
-2. Never give direct medical advice — always cite the RCP as your source.
-3. Always include the CIS code when referring to a specific drug.
-4. Report every interaction found with its ANSM constraint level.
-
-RESPONSE FORMAT — STRICT:
-- Be direct and concise. 3-5 sentences maximum.
-- Use plain prose, not bullet points or headers.
-- Never ask follow-up questions.
-- State the interaction level, the risk, and the key precaution. That's it.
-
-CRITICAL — check_interactions rules:
-1. For N drugs mentioned, you MUST call check_interactions for EVERY pair.
-   Example with 3 drugs A, B, C: call (A,B), (A,C), (B,C). Never skip a pair.
-2. Pass individual drug names as-is — the tool auto-discovers the correct ANSM class."""
+FORMAT DE RÉPONSE — STRICT :
+- Direct et concis. 3 à 5 phrases maximum.
+- Prose simple, pas de listes à puces ni titres.
+- Ne jamais poser de questions de suivi.
+- Énoncer le niveau d'interaction, le risque et la précaution clé."""
 
 
 def routing(state: AgentState) -> str:
@@ -68,9 +60,7 @@ def build_agent() -> CompiledStateGraph:  # type: ignore[type-arg]
         model=settings.openrouter_model,
         default_headers={"X-Title": "Nephila"},
     )
-    # parallel_tool_calls=False: some providers (e.g. Mistral via OpenRouter) raise
-    # "Not the same number of function calls and responses" when the model batches
-    # multiple tool calls in a single message. Force sequential calls.
+    # Sequential tool calls required: guardrail inspects ALL tool results before routing.
     llm_with_tools = llm.bind_tools(TOOLS, parallel_tool_calls=False)
 
     def agent_node(state: AgentState) -> dict[str, Any]:

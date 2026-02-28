@@ -25,7 +25,8 @@ class TestWarnNode:
         )
         result = warn_node(state)
         new_msg = result["messages"][0]
-        assert new_msg.content.startswith("Voici l'analyse.")
+        assert new_msg.content.startswith("⚠️")
+        assert "Voici l'analyse." in new_msg.content
         assert "⚠️" in new_msg.content
         assert "AMIODARONE + WARFARINE" in new_msg.content
 
