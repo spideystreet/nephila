@@ -14,8 +14,9 @@ class TestGetEngine:
         """Calling _get_engine twice returns the same engine instance."""
         queries._engine = None
         mock_engine = MagicMock()
-        with patch("nephila.agent.queries.PipelineSettings"), patch(
-            "nephila.agent.queries.create_engine", return_value=mock_engine
+        with (
+            patch("nephila.agent.queries.PipelineSettings"),
+            patch("nephila.agent.queries.create_engine", return_value=mock_engine),
         ):
             try:
                 e1 = queries._get_engine()

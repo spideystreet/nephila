@@ -12,26 +12,50 @@
   </p>
 </div>
 
-**Nephila** est un agent IA ReAct ultra-rapide conçu pour interroger les référentiels pharmaceutiques officiels français. 
+**Nephila** is a fast ReAct AI agent built to query official French pharmaceutical databases.
 
 > [!NOTE]
-> **Disclaimer :** Nephila est un puissant outil d'information basé sur des données officielles ( ANSM, BDPM ), à titre expérimental. Il ne remplace absolument pas l'avis d'un professionnel de santé ( pour l'instant ).
+> **Disclaimer:** Nephila is an experimental information tool based on official data — ANSM, BDPM. It does not replace professional medical advice.
 
-## Ce qu'il fait de mieux
-* 🔍 **Recherche instantanée** de médicaments (marques et génériques)
-* 🔃 **Vérification automatique** des interactions entre substances actives
-* 📄 **Consultation directe** des fiches RCP officielles
+## Features
+* 🔍 **Instant drug search** across brand names and generics
+* 🔃 **Automatic interaction checking** between active substances
+* 📄 **Direct access** to official RCP — Summary of Product Characteristics
 
-## Scaffold / Structure du repo
+## Quickstart
+
+```bash
+# 1. Install dependencies
+uv sync && uv sync --extra dev
+cp .env.example .env          # fill in required variables
+
+# 2. Start infrastructure
+docker compose up -d           # PostgreSQL + ChromaDB
+
+# 3. Load data — Bronze → Silver → Gold
+uv run dotenv -f .env run -- uv run dagster dev              # localhost:3000
+uv run dotenv -f .env run -- uv run dagster asset materialize --select '*'
+
+# 4. Launch the agent
+uv run dotenv -f .env run -- uv run langgraph dev   # Studio at localhost:2024
+```
+
+## Repository structure
 ```text
 nephila/
-├── data/               # Données locales (couche Bronze)
-├── dbt/                # Modèles et transformations SQL (couche Silver)
-├── docs/               # Documentation du projet
-├── src/nephila/        # Code source principal
-│   ├── agent/          # Cerveau de l'IA (LangGraph, Tools, Nodes)
-│   ├── models/         # Définition des schémas de données
-│   └── pipeline/       # Orchestration Dagster (Assets, IO, Téléchargements)
-├── docker-compose.yml  # Infrastructure locale
-└── pyproject.toml      # Dépendances (Dagster, LangGraph, dbt...)
+├── data/                # Local files — Bronze layer
+├── dbt/                 # SQL models & transforms — Silver layer
+├── docs/                # Mintlify documentation
+├── scripts/             # Utility scripts — run_eval.py
+├── src/nephila/         # Main source code
+│   ├── agent/           # LangGraph ReAct agent
+│   │   ├── nodes/       # Graph nodes — guardrail, response, warn
+│   │   ├── tools/       # LangChain tools — search, interactions, generics, RCP
+│   │   ├── queries.py   # Typed SQL queries — Pydantic-validated
+│   │   └── graph_agent.py
+│   ├── models/          # Pydantic schemas — ANSM, BDPM, query results
+│   └── pipeline/        # Dagster orchestration — assets, loaders, parsers
+├── tests/               # pytest — unit + integration + e2e eval
+├── docker-compose.yml   # PostgreSQL + ChromaDB
+└── pyproject.toml       # Dependencies — LangGraph, Dagster, dbt...
 ```

@@ -3,6 +3,7 @@ Nephila ReAct agent — LangGraph graph definition.
 Architecture: agent (LLM + tools) → guardrail → response|warn
 """
 
+import threading
 from typing import Any
 
 from langchain_core.messages import SystemMessage
@@ -88,15 +89,18 @@ def build_agent() -> CompiledStateGraph:  # type: ignore[type-arg]
     return builder.compile()
 
 
+_graph: CompiledStateGraph | None = None  # type: ignore[type-arg]
+_graph_lock = threading.Lock()
+
+
 def get_graph() -> CompiledStateGraph:  # type: ignore[type-arg]
     """Lazy singleton — avoids requiring env vars at import time."""
     global _graph  # noqa: PLW0603
     if _graph is None:
-        _graph = build_agent()
+        with _graph_lock:
+            if _graph is None:
+                _graph = build_agent()
     return _graph
-
-
-_graph: CompiledStateGraph | None = None  # type: ignore[type-arg]
 
 
 # LangGraph Studio / langgraph dev expects a module-level `graph` attribute.
