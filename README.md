@@ -32,10 +32,9 @@ cp .env.example .env          # fill in required variables
 # 2. Start infrastructure
 docker compose up -d           # PostgreSQL + ChromaDB
 
-# 3. Load data (Bronze → Silver → Gold)
-uv run dotenv -f .env run -- uv run dagster asset materialize --select bronze
-uv run dotenv -f dbt/.env run -- uv run dbt run --project-dir dbt --profiles-dir dbt
-uv run dotenv -f .env run -- uv run dagster asset materialize --select gold_embeddings
+# 3. Load data — Bronze → Silver → Gold
+uv run dotenv -f .env run -- uv run dagster dev              # localhost:3000
+uv run dotenv -f .env run -- uv run dagster asset materialize --select '*'
 
 # 4. Launch the agent
 uv run dotenv -f .env run -- uv run langgraph dev   # Studio at localhost:2024
