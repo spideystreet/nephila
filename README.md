@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/1c252cae-6f46-4c70-93a8-7ab8e57c0da2" alt="Logo Nephila" width="200" />
+  <img src="docs/favicon.png" alt="Logo Nephila" width="200" />
 
   # Nephila
 
