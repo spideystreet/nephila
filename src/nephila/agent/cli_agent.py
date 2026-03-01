@@ -10,7 +10,7 @@ import sys
 
 from langchain_core.messages import HumanMessage
 
-from nephila.agent.graph_agent import graph
+from nephila.agent.graph_agent import get_graph
 
 
 def run(query: str) -> None:
@@ -18,7 +18,7 @@ def run(query: str) -> None:
     print(f"Query: {query}")
     print(f"{'=' * 60}\n")
 
-    for event in graph.stream(
+    for event in get_graph().stream(
         {"messages": [HumanMessage(content=query)]},
         stream_mode="updates",
     ):

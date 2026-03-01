@@ -1,0 +1,20 @@
+version: 2
+
+models:
+  - name: silver_ansm__substance_class
+    description: "Substance DCI to ANSM pharmacological class mappings."
+    columns:
+      - name: substance_dci
+        description: "Lowercased DCI name of the substance."
+        data_tests:
+          - not_null
+      - name: classe_ansm
+        description: "Uppercased ANSM pharmacological class name."
+        data_tests:
+          - not_null
+      - name: source
+        description: "Origin of the mapping: parenthetical member list or Voir aussi reference."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['parenthetical', 'voir_aussi']

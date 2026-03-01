@@ -113,6 +113,28 @@ def load_bdpm_files_to_raw(bronze_dir: Path, engine: Engine) -> dict[str, int]:
     return results
 
 
+def load_substance_classes_to_raw(records: list[dict[str, str]], engine: Engine) -> int:
+    """Load parsed ANSM substance-class mappings into raw.ansm_substance_class."""
+    log = get_dagster_logger()
+
+    if not records:
+        log.warning("[raw] No ANSM substance-class records to load")
+        return 0
+
+    df = pd.DataFrame(records)
+    df.to_sql(
+        "ansm_substance_class",
+        engine,
+        schema="raw",
+        if_exists="replace",
+        index=False,
+        chunksize=1000,
+        method="multi",
+    )
+    log.info(f"[raw] ansm_substance_class — {len(df):,} rows loaded")
+    return len(df)
+
+
 def load_interactions_to_raw(records: list[dict[str, Any]], engine: Engine) -> int:
     """Load parsed ANSM interaction records into raw.ansm_interaction."""
     log = get_dagster_logger()

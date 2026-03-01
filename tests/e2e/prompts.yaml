@@ -1,0 +1,166 @@
+# Nephila E2E test prompts — versioned interaction test cases.
+# Each case has a prompt and assertions on the agent's final response.
+#
+# Fields:
+#   id          : unique identifier
+#   prompt      : user message sent to the agent
+#   expect_warn : true if a critical interaction (Contre-indication / Association déconseillée) must be flagged
+#   expect_in   : strings that MUST appear in the response (case-insensitive)
+#   expect_not  : strings that must NOT appear (false-positive guard)
+
+# --- expect_warn: true -------------------------------------------------------
+
+# Association déconseillée: AINS potentiate MTX toxicity
+# DB pair: METHOTREXATE + ANTI-INFLAMMATOIRES NON STÉROÏDIENS (AD)
+- id: ibuprofene_methotrexate
+  substance_a: ibuprofène
+  substance_b: méthotrexate
+  prompt: >
+    Mon patient est suivi pour un psoriasis sous méthotrexate faible dose.
+    Il a de la fièvre et demande s'il peut prendre de l'ibuprofène. Est-ce compatible ?
+  expect_warn: true
+  expect_in:
+    - "⚠️"
+    - "méthotrexate"
+  expect_not:
+    - "trimethoprime"
+    - "probenecide"
+
+# Contre-indication: ciclosporine inhibits CYP3A4, simvastatine is a substrate → rhabdomyolysis
+# DB pair: CICLOSPORINE + SIMVASTATINE (CI)
+- id: ciclosporine_simvastatine
+  substance_a: ciclosporine
+  substance_b: simvastatine
+  prompt: >
+    Patient greffé rénal sous ciclosporine. Son bilan lipidique est perturbé
+    et le cardiologue envisage d'introduire de la simvastatine.
+    Y a-t-il un risque d'interaction ?
+  expect_warn: true
+  expect_in:
+    - "⚠️"
+    - "simvastatine"
+  expect_not:
+    - "lithium"
+
+# --- expect_warn: false ------------------------------------------------------
+
+# Précaution d'emploi: amiodarone increases simvastatine exposure (CYP3A4 inhibition)
+# DB pair: AMIODARONE + SIMVASTATINE (PE) — exact DCI names, no class name needed
+- id: amiodarone_simvastatine
+  substance_a: amiodarone
+  substance_b: simvastatine
+  prompt: >
+    Patient sous amiodarone 200 mg/j pour une fibrillation auriculaire.
+    Son médecin veut ajouter de la simvastatine pour une dyslipidémie.
+    Y a-t-il une interaction connue ?
+  expect_warn: false
+  expect_in:
+    - "simvastatine"
+  expect_not:
+    - "⚠️"
+
+# True negative: no known pharmacological interaction between these two drugs
+- id: paracetamol_amoxicilline
+  substance_a: paracétamol
+  substance_b: amoxicilline
+  prompt: >
+    Mon patient a une angine bactérienne traitée par amoxicilline.
+    Il souhaite prendre du paracétamol pour la douleur et la fièvre.
+    Y a-t-il une interaction entre ces deux médicaments ?
+  expect_warn: false
+  expect_in:
+    - "paracétamol"
+  expect_not:
+    - "⚠️"
+
+# Different tool path: tests search_drug → find_generics chain
+- id: generiques_doliprane
+  prompt: >
+    Quels sont les médicaments génériques disponibles pour le Doliprane ?
+  expect_warn: false
+  expect_in:
+    - "paracétamol"
+  expect_not:
+    - "⚠️"
+
+# Azole antifungal + AVK: FLUCONAZOLE is indexed individually in ANSM (not as ANTIFONGIQUES AZOLÉS)
+# DB pair: FLUCONAZOLE + ANTIVITAMINES K (Précaution d'emploi) — tests individual DCI lookup
+- id: fluconazole_warfarine
+  substance_a: fluconazole
+  substance_b: warfarine
+  prompt: >
+    Mon patient est sous warfarine depuis 6 mois pour une MTEV.
+    Son dermatologue vient de lui prescrire du fluconazole pour une candidose unguéale.
+    Y a-t-il un problème ?
+  expect_warn: false
+  expect_in:
+    - "fluconazole"
+    - "warfarine"
+  expect_not:
+    - "⚠️"
+    - "fluoroquinolone"
+
+# RCP tool path: tests search_drug → get_rcp chain (single-drug, no interaction partner)
+- id: rcp_aspirine
+  prompt: >
+    Quelles sont les contre-indications de l'aspirine 500 mg ?
+  expect_warn: false
+  expect_in:
+    - "aspirine"
+  expect_not:
+    - "⚠️"
+
+# Association déconseillée: FLUOXETINE + TRAMADOL (direct DCI pair, AD level)
+# Also has class-level APEC: ISRS + TRAMADOL — but the DCI pair is AD, which triggers warn
+# DB pair: FLUOXETINE + TRAMADOL (AD)
+- id: fluoxetine_tramadol
+  substance_a: fluoxétine
+  substance_b: tramadol
+  prompt: >
+    Un patient sous fluoxétine 20 mg pour une dépression souhaite prendre
+    du tramadol pour des douleurs lombaires. Y a-t-il un risque ?
+  expect_warn: true
+  expect_in:
+    - "⚠️"
+    - "tramadol"
+  expect_not:
+    - "lithium"
+
+# Association déconseillée: AINS increase hemorrhagic risk with oral anticoagulants (GI mucosal damage)
+# DB pair: ANTI-INFLAMMATOIRES NON STÉROÏDIENS + ANTICOAGULANTS ORAUX (AD)
+# Class resolution required: naproxene → ANTI-INFLAMMATOIRES NON STÉROÏDIENS
+#                            apixaban  → ANTICOAGULANTS ORAUX
+- id: naproxene_apixaban
+  substance_a: naproxène
+  substance_b: apixaban
+  prompt: >
+    Une patiente de 72 ans est sous apixaban 5 mg deux fois par jour pour une fibrillation
+    auriculaire. Elle consulte pour des douleurs articulaires et demande si elle peut prendre
+    du naproxène en automédication. Quel est le risque ?
+  expect_warn: true
+  expect_in:
+    - "⚠️"
+    - "apixaban"
+  expect_not:
+    - "méthotrexate"
+    - "ciclosporine"
+
+# Précaution d'emploi: beta-blockers mask autonomic symptoms of hypoglycemia (pharmacodynamic)
+# DB pair: BÊTA-BLOQUANTS (SAUF ESMOLOL) (Y COMPRIS COLLYRES) + SULFAMIDES HYPOGLYCÉMIANTS (PE)
+# Class resolution required: atenolol      → BÊTA-BLOQUANTS (SAUF ESMOLOL) (Y COMPRIS COLLYRES)
+#                            glibenclamide → SULFAMIDES HYPOGLYCÉMIANTS
+# Mechanism distinct from existing PE cases (not CYP, not serotonin): autonomic blockade
+- id: atenolol_glibenclamide
+  substance_a: aténolol
+  substance_b: glibenclamide
+  prompt: >
+    Un patient diabétique de type 2 traité par glibenclamide 5 mg vient de se voir prescrire
+    de l'aténolol 50 mg pour de l'hypertension artérielle. Son médecin s'interroge sur
+    l'impact de cette association sur la surveillance de la glycémie.
+  expect_warn: false
+  expect_in:
+    - "glibenclamide"
+    - "aténolol"
+  expect_not:
+    - "⚠️"
+    - "warfarine"

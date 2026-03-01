@@ -8,25 +8,16 @@ from typing import Any
 
 from langchain_core.messages import ToolMessage
 
-from nephila.agent.model_state import AgentState
-
-CRITICAL_LEVELS: frozenset[str] = frozenset({"contre-indication", "association déconseillée"})
+from nephila.agent.model_state import CRITICAL_LEVELS, AgentState, last_human_message_idx
 
 
 def guardrail_node(state: AgentState) -> dict[str, Any]:
     """Extract interaction records from tool messages and flag critical ones."""
     messages = state["messages"]
 
-    # Only inspect tool messages from the current turn (after the last HumanMessage)
-    last_human_idx = 0
-    for i, msg in reversed(list(enumerate(messages))):
-        if getattr(msg, "type", None) == "human":
-            last_human_idx = i
-            break
-
     seen_pairs: set[frozenset[str]] = set()
     interactions: list[dict[str, Any]] = []
-    for msg in messages[last_human_idx:]:
+    for msg in messages[last_human_message_idx(messages) :]:
         if not isinstance(msg, ToolMessage):
             continue
         content = str(msg.content)
@@ -40,7 +31,7 @@ def guardrail_node(state: AgentState) -> dict[str, Any]:
             seen_pairs.add(pair)
             interactions.append({"niveau_contrainte": level, "detail": detail})
 
-    return {"interactions_found": interactions, "interactions_checked": True}
+    return {"interactions_found": interactions}
 
 
 def should_warn(state: AgentState) -> str:

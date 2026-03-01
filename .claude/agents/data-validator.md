@@ -1,3 +1,8 @@
+---
+name: data-validator
+description: Validates data quality across Bronze/Silver/Gold pipeline layers. Use when checking BDPM file structure, raw table row counts, dbt test results, or Silver FK integrity.
+---
+
 # Agent: data-validator
 
 Specialized subagent for data quality validation across the Medallion pipeline.

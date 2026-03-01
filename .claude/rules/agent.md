@@ -1,3 +1,9 @@
+---
+paths:
+  - src/nephila/agent/**
+  - tests/agent/**
+---
+
 # Agent — Architecture Context
 
 ## LangGraph ReAct State Machine
@@ -22,8 +28,11 @@ START → [agent] ──► tool_calls? ──► [tools] ──► [agent] (loo
 |------|---------------|-------------|
 | `tool_search_drug.py` | `search_drug` | ChromaDB `idx_bdpm_medicament_v1` |
 | `tool_find_generics.py` | `find_generics` | Silver `silver_bdpm__generique` |
-| `tool_check_interactions.py` | `check_interactions` | ChromaDB `idx_ansm_interaction_v1` |
+| `tool_check_interactions.py` | `check_interactions` | Silver `silver_ansm__substance_class` + `silver_ansm__interaction` + ChromaDB `idx_ansm_interaction_v1` |
 | `tool_get_rcp.py` | `get_rcp` | Silver `silver_bdpm__info_importante` |
+
+SQL queries are centralized in `agent/queries.py` (lazy singleton engine, Pydantic-validated returns).
+Tools delegate to `queries.*` for DB access and handle formatting + ChromaDB themselves.
 
 ## Guardrails (non-negotiable)
 
@@ -39,29 +48,12 @@ START → [agent] ──► tool_calls? ──► [tools] ──► [agent] (loo
 | `messages` | `Annotated[list, add_messages]` | Full conversation (LangGraph managed) |
 | `cis_codes` | `list[str]` | CIS codes mentioned in the conversation |
 | `interactions_found` | `list[dict]` | Parsed from guardrail (`niveau_contrainte`, `detail`) |
-| `interactions_checked` | `bool` | Set to `True` by guardrail node |
 | `source_cis` | `str \| None` | First CIS extracted from ToolMessages |
 
-## ChromaDB Index Naming
-
-`idx_<source>_<content>_<model_version>` — e.g. `idx_bdpm_medicament_v1`, `idx_ansm_interaction_v1`
-
-## LangGraph Studio (conversational UI)
+## LangGraph Studio
 
 ```bash
-# Install CLI (dev extra)
-uv sync --extra dev
-
-# Start local dev server (port 2024)
-uv run langgraph dev
-
-# Then open: https://smith.langchain.com/studio
-# Connect to: http://localhost:2024
+uv run dotenv -f .env run -- uv run langgraph dev    # connect localhost:2024
 ```
-
-Requires in `.env`:
-- `LANGSMITH_API_KEY` — LangSmith API key
-- `LANGSMITH_TRACING=true`
-- `LANGSMITH_PROJECT=nephila`
 
 Graph entrypoint declared in `langgraph.json` at project root.

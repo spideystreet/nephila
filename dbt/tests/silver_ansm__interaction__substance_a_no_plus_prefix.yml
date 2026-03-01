@@ -1,0 +1,13 @@
+version: 2
+
+singular_tests:
+  - name: silver_ansm__interaction__substance_a_no_plus_prefix
+    description: >
+      Ensures substance_a never starts with "+".
+      In the ANSM PDF layout, lines starting with "+" denote substance B entries.
+      A "+" prefix in substance_a indicates a parser misclassification.
+    model: silver_ansm__interaction
+    column: substance_a
+    failure: >
+      Returns rows where substance_a LIKE '+%' — substance B lines
+      incorrectly parsed as substance A.

@@ -13,7 +13,7 @@ SELECT
     REPLACE(om."BOITES", '.', '')::BIGINT                           AS nb_boites,
     REPLACE(REPLACE(om."REM",  '.', ''), ',', '.')::NUMERIC         AS montant_rembourse,
     REPLACE(REPLACE(om."BSE",  '.', ''), ',', '.')::NUMERIC         AS montant_base_remboursement,
-    REPLACE(om."nbc", '.', '')::INTEGER                             AS nb_beneficiaires
+    REPLACE(om.nbc, '.', '')::INTEGER                               AS nb_beneficiaires
 
 FROM {{ source('raw', 'open_medic') }} AS om
 LEFT JOIN {{ source('raw', 'cis_cip_bdpm') }} AS cip

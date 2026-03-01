@@ -1,5 +1,6 @@
 {
   "name": "Nephila",
+  "favicon": "/favicon.png",
   "colors": {
     "primary": "#0ea5e9",
     "light": "#38bdf8",

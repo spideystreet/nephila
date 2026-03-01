@@ -1,5 +1,22 @@
 {
+  "mcpServers": {
+    "datagouv": {
+      "type": "http",
+      "url": "https://mcp.data.gouv.fr/mcp"
+    }
+  },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/guard-destructive.sh"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",

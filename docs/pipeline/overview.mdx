@@ -19,8 +19,9 @@ L'orchestration est assurée par **Dagster**. Les transformations SQL sont gér�
 
 ```
 bdpm_raw ──────────┐
-                   ├──► bdpm_to_raw ──┐
-ansm_thesaurus_raw ─► ansm_to_raw ───┴──► silver_dbt ──► gold_embeddings
+                   ├──► bdpm_to_raw ────────┐
+ansm_thesaurus_raw ─┬► ansm_to_raw ────────┤
+                    └► ansm_classes_to_raw ─┴──► silver_dbt ──► gold_embeddings
 ```
 
 ### Description des assets
@@ -31,6 +32,7 @@ ansm_thesaurus_raw ─► ansm_to_raw ───┴──► silver_dbt ──►
 | `ansm_thesaurus_raw` | bronze | Télécharge le PDF du Thésaurus ANSM |
 | `bdpm_to_raw` | bronze | Parse et charge les fichiers BDPM dans `raw.*` (PostgreSQL) |
 | `ansm_to_raw` | bronze | Parse le PDF ANSM (pdfplumber) → insère dans `raw.ansm_thesaurus` |
+| `ansm_classes_to_raw` | silver | Parse les mappings substance→classe depuis le PDF ANSM → insère dans `raw.ansm_substance_class` |
 | `silver_dbt` | silver | Exécute les modèles dbt `silver_bdpm__*` et `silver_ansm__*` |
 | `gold_embeddings` | gold | Génère les embeddings et les upserte dans ChromaDB |
 
@@ -59,5 +61,5 @@ Les assets doivent être matérialisés dans l'ordre : bronze → silver → gol
 | `pipeline/config_pipeline.py` | `PipelineSettings` — toutes les variables d'environnement |
 | `pipeline/definitions.py` | Entrypoint Dagster (`Definitions`) |
 | `pipeline/assets/asset_bronze.py` | Assets de la couche Bronze |
-| `pipeline/assets/asset_silver.py` | Asset Silver (`silver_dbt`) |
+| `pipeline/assets/asset_silver.py` | Assets Silver : `ansm_to_raw`, `ansm_classes_to_raw`, `silver_dbt` |
 | `pipeline/assets/asset_gold.py` | Asset Gold (`gold_embeddings`) |

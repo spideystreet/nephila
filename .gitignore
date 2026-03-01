@@ -209,8 +209,17 @@ __marimo__/
 
 # Nephila — Claude local overrides
 CLAUDE.local.md
+.mcp.json
+.claude/settings.local.json
 .claude/temp/
 .claude/progress/
+
+# Nephila — Other AI assistant configs (machine-specific)
+AGENTS.md
+GEMINI.md
+
+# Nephila — LangSmith eval exports
+nephila-*.csv
 
 # Nephila — Data (raw & processed files)
 data/bronze/

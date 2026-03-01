@@ -1,0 +1,13 @@
+version: 2
+
+singular_tests:
+  - name: silver_ansm__interaction__niveau_contrainte_valid
+    description: >
+      Ensures niveau_contrainte only contains the four canonical ANSM constraint levels.
+      Any other value is a parsing artefact from the ANSM PDF.
+    model: silver_ansm__interaction
+    column: niveau_contrainte
+    failure: >
+      Returns rows where niveau_contrainte is not one of:
+      'Contre-indication', 'Association déconseillée',
+      'Précaution d''emploi', 'A prendre en compte'.

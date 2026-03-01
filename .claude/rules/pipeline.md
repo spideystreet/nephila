@@ -1,3 +1,8 @@
+---
+paths:
+  - src/nephila/pipeline/**
+---
+
 # Pipeline — Architecture Context
 
 ## Medallion Overview
@@ -14,13 +19,10 @@ Orchestration: **Dagster**. Transformations: **dbt + Python**.
 
 ```
 bdpm_raw ──────────┐
-                   ├──► bdpm_to_raw ──┐
-ansm_thesaurus_raw ─► ansm_to_raw ───┴──► silver_dbt ──► gold_embeddings
+                   ├──► bdpm_to_raw ────────┐
+ansm_thesaurus_raw ─┬► ansm_to_raw ────────┤
+                    └► ansm_classes_to_raw ─┴──► silver_dbt ──► gold_embeddings
 ```
-
-## Python Naming
-
-`<type>_<function>.py` — e.g. `asset_bronze.py`, `loader_bdpm.py`, `parser_ansm.py`, `model_bdpm.py`, `config_pipeline.py`
 
 ## Key Files
 
@@ -45,9 +47,3 @@ Source encoding: **ISO-8859-1**, separator: **tab**. Column names defined in `lo
 | `CIS_GENER_bdpm.txt` | `raw.cis_gener_bdpm` | id_groupe, cis, type_generique |
 | `CIS_CPD_bdpm.txt` | `raw.cis_cpd_bdpm` | cis, condition_prescription_delivrance |
 | `CIS_InfoImportantes.txt` | `raw.cis_infoimportantes` | cis, texte_info_importante (RCP link) |
-
-## Rules
-
-- No default values for sensitive vars (passwords, keys, usernames, db names) — in code, docker-compose, or dbt profiles
-- Non-sensitive vars (host, port) may have defaults
-- `load_dotenv()` at entrypoint, never `SettingsConfigDict(env_file=...)`

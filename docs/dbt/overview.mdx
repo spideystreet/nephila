@@ -56,6 +56,7 @@ sources:
       - name: cis_cpd_bdpm
       - name: cis_infoimportantes
       - name: ansm_thesaurus
+      - name: ansm_substance_class
 ```
 
 Reference in models with `{{ source('raw', 'table_name') }}`.
@@ -80,6 +81,7 @@ Reference in models with `{{ source('raw', 'table_name') }}`.
 | Model | Raw source | Description |
 |-------|-----------|-------------|
 | `silver_ansm__interaction` | `raw.ansm_thesaurus` | Drug interactions with constraint levels |
+| `silver_ansm__substance_class` | `raw.ansm_substance_class` | Substance DCI → ANSM pharmacological class mappings |
 
 ## Running dbt
 

@@ -95,3 +95,22 @@ Each parsed interaction produces:
 <Note>
 `conduite_a_tenir` is always `None` — the PDF layout does not allow reliable separation of risk nature from recommended action.
 </Note>
+
+### Substance-class mapping parser (`parse_thesaurus_classes`)
+
+A second parser function, `parse_thesaurus_classes()`, extracts **substance → pharmacological class** mappings from the same PDF. It uses different heuristics:
+
+1. **Parenthetical member lists**: after an ALL_CAPS class header, lines like `(warfarine, acénocoumarol, ...)` list member substances
+2. **"Voir aussi" lines**: `Voir aussi : antiagregants plaquettaires` captures cross-references
+
+Each record produces:
+
+```python
+{
+    "substance_dci": "warfarine",
+    "classe_ansm": "ANTIVITAMINES K",
+    "source": "parenthetical"  # or "voir_aussi"
+}
+```
+
+These records are loaded into `raw.ansm_substance_class` by `load_substance_classes_to_raw()` in `loader_bdpm.py`, and transformed by dbt into `silver_ansm__substance_class`.

@@ -1,3 +1,10 @@
+---
+name: new-dagster-asset
+description: Add a new Dagster asset to the pipeline. Use when creating a Bronze, Silver, or Gold layer asset.
+disable-model-invocation: true
+argument-hint: "<asset-name> [bronze|silver|gold]"
+---
+
 # Skill: Add a New Dagster Asset
 
 ## Steps
@@ -22,6 +29,6 @@
 
 6. **Validate**:
    ```bash
-   uv run dagster asset list          # should show the new asset
-   uv run dagster asset materialize --select <asset_name>
+   uv run dotenv -f .env run -- uv run dagster asset list
+   uv run dotenv -f .env run -- uv run dagster asset materialize --select <asset_name>
    ```
