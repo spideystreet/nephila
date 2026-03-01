@@ -1,6 +1,6 @@
 {
   "graphs": {
-    "nephila_agent": "./src/nephila/agent/graph_agent.py:graph"
+    "nephila_agent": "./src/nephila/agent/graph_agent.py:get_graph"
   },
   "python_version": "3.11",
   "dependencies": ["."],
